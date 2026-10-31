@@ -8,7 +8,7 @@ export interface PanelEvents {
   onPin(i: number | null): void;
   onView(id: string): void;
   onClear(): void;
-  onSwap(i: number): void;
+  onSwap(start: number, finish: number): void;
 }
 
 type Child = Node | string | null | undefined | false;
@@ -33,10 +33,10 @@ function action(label: string, run: () => void, title?: string): HTMLButtonEleme
 
 const fmt = new Intl.NumberFormat("en");
 
-const PART_NOTES: Record<string, string> = {
-  pictures: "Emoji placed by how alike their pictures look, the 3D and flat renders together.",
-  names: "Emoji placed by their Unicode names and CLDR keywords alone.",
-};
+const PART_NOTES = new Map([
+  ["pictures", "Emoji placed by how alike their pictures look, the 3D and flat renders together."],
+  ["names", "Emoji placed by their Unicode names and CLDR keywords alone."],
+]);
 
 export class Panels {
   private base: Base;
@@ -120,17 +120,21 @@ export class Panels {
   setView(view: string): void {
     this.view = view;
     this.mapSelect.value = view;
-    if (view === this.base.meta.views.race) {
-      this.mapNote.textContent = "Emoji placed by the mixed similarity the races run on.";
-    } else if (view === BLENDED) {
-      this.mapNote.textContent = "Emoji placed by all 24 viewpoints' descriptions blended. Every map except the race map grows out of this one, and switching maps slides through it.";
-    } else if (PART_NOTES[view]) {
-      this.mapNote.textContent = PART_NOTES[view];
-    } else {
-      this.mapNote.textContent = `Emoji placed by what the ${this.title(view)} viewpoint wrote alone.`;
-    }
+    this.mapNote.textContent = this.note(view);
     const open = this.opened.get(view);
     if (open) open.open = true;
+  }
+
+  private note(view: string): string {
+    const { race, sweeps } = this.base.meta.views;
+    if (view === race) return "Emoji placed by the mixed similarity the races run on.";
+    if (view === BLENDED) {
+      const count = sweeps.filter((s) => s.kind === "viewpoint").length;
+      return `Emoji placed by all ${count} viewpoints' descriptions blended. Every map except the race map grows out of this one, and switching maps slides through it.`;
+    }
+    const sweep = sweeps.find((s) => s.id === view);
+    if (sweep?.kind === "part") return PART_NOTES.get(view) ?? `Emoji placed by ${sweep.title.toLowerCase()} alone.`;
+    return `Emoji placed by what the ${this.title(view)} viewpoint wrote alone.`;
   }
 
   sprite(i: number, size: number): HTMLSpanElement {
@@ -256,7 +260,7 @@ export class Panels {
         " · ",
         action("unpin", () => this.events.onPin(null)),
         " · ",
-        action("swap", () => this.events.onSwap(i), `Race the other way: make ${node.c} ${node.n} the focus`),
+        action("swap", () => this.events.onSwap(i, d.root), `Race the other way: make ${node.c} ${node.n} the focus`),
       );
     }
     this.pathBox.replaceChildren(eyebrow, longest, list);

@@ -192,19 +192,19 @@ export class MapView {
     const span = Math.ceil(radius / CELL);
     const cx = Math.floor(mx / CELL);
     const cy = Math.floor(my / CELL);
-    const stacked = this.spriteSize() >= 14 && this.d !== null;
+    const stacked = this.spriteSize() >= 14;
     let best: number | null = null;
     let bestDist = radius;
-    let bestFlow = -1;
+    let bestRank = -1;
     for (let gx = cx - span; gx <= cx + span; gx++) {
       for (let gy = cy - span; gy <= cy + span; gy++) {
         for (const i of this.grid.get(this.cellKey(gx, gy)) ?? []) {
           const dx = Math.abs(this.xs[i] - mx);
           const dy = Math.abs(this.ys[i] - my);
-          if (stacked && this.d) {
-            const flow = i === this.d.root ? Infinity : this.d.flow[i];
-            if (dx <= radius && dy <= radius && flow > bestFlow) {
-              bestFlow = flow;
+          if (stacked) {
+            const rank = this.stackRank(i);
+            if (dx <= radius && dy <= radius && rank > bestRank) {
+              bestRank = rank;
               best = i;
             }
           } else {
@@ -218,6 +218,12 @@ export class MapView {
       }
     }
     return best;
+  }
+
+  private stackRank(i: number): number {
+    const d = this.d;
+    if (!d) return i;
+    return i === d.root ? Infinity : d.flow[i];
   }
 
   private setHover(i: number | null): void {
@@ -385,16 +391,10 @@ export class MapView {
         if (this.visible(sx, sy, size)) this.sprite(i, sx, sy, size);
       }
     } else {
-      const placed: [number, number][] = [this.toScreen(d.root)];
-      for (const i of this.byFlow.slice(0, 300)) {
-        if (i === d.root || onPath.has(i)) continue;
-        const [sx, sy] = this.toScreen(i);
-        if (!this.visible(sx, sy, 26)) continue;
-        if (placed.every(([px, py]) => Math.hypot(px - sx, py - sy) >= LANDMARK_SPACING)) {
-          placed.push([sx, sy]);
-          this.sprite(i, sx, sy, 24);
-        }
-      }
+      this.landmarks(
+        this.byFlow.slice(0, 300).filter((i) => i !== d.root && !onPath.has(i)),
+        [this.toScreen(d.root)],
+      );
     }
     ctx.globalAlpha = 1;
     if (path.length) {
@@ -429,6 +429,36 @@ export class MapView {
     if (this.hover !== null && this.hover !== d.root) this.ring(this.hover, pathSize);
   }
 
+  private landmarks(order: Iterable<number>, taken: [number, number][]): void {
+    const cells = new Map<number, [number, number][]>();
+    const cellOf = (sx: number, sy: number) => [Math.floor(sx / LANDMARK_SPACING), Math.floor(sy / LANDMARK_SPACING)];
+    const take = (sx: number, sy: number) => {
+      const [cx, cy] = cellOf(sx, sy);
+      const key = this.cellKey(cx, cy);
+      const bucket = cells.get(key);
+      if (bucket) bucket.push([sx, sy]);
+      else cells.set(key, [[sx, sy]]);
+    };
+    const free = (sx: number, sy: number) => {
+      const [cx, cy] = cellOf(sx, sy);
+      for (let gx = cx - 1; gx <= cx + 1; gx++) {
+        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+          for (const [px, py] of cells.get(this.cellKey(gx, gy)) ?? []) {
+            if (Math.hypot(px - sx, py - sy) < LANDMARK_SPACING) return false;
+          }
+        }
+      }
+      return true;
+    };
+    for (const [sx, sy] of taken) take(sx, sy);
+    for (const i of order) {
+      const [sx, sy] = this.toScreen(i);
+      if (!this.visible(sx, sy, 26) || !free(sx, sy)) continue;
+      take(sx, sy);
+      this.sprite(i, sx, sy, 24);
+    }
+  }
+
   private ring(i: number, size: number): void {
     const [sx, sy] = this.toScreen(i);
     this.ctx.strokeStyle = INK;
@@ -448,15 +478,13 @@ export class MapView {
       if (this.visible(sx, sy, 4)) ctx.fillRect(sx - 1.6, sy - 1.6, 3.2, 3.2);
     }
     ctx.globalAlpha = 1;
-    const placed: [number, number][] = [];
-    for (let i = 0; i < this.xs.length; i++) {
-      const [sx, sy] = this.toScreen(i);
-      if (size >= 14) {
+    if (size >= 14) {
+      for (let i = 0; i < this.xs.length; i++) {
+        const [sx, sy] = this.toScreen(i);
         if (this.visible(sx, sy, size)) this.sprite(i, sx, sy, size);
-      } else if (this.visible(sx, sy, 26) && placed.every(([px, py]) => Math.hypot(px - sx, py - sy) >= LANDMARK_SPACING)) {
-        placed.push([sx, sy]);
-        this.sprite(i, sx, sy, 24);
       }
+    } else {
+      this.landmarks(this.xs.keys(), []);
     }
     if (this.hover === null) return;
     const hoverSize = Math.max(size, 28) * 1.3;

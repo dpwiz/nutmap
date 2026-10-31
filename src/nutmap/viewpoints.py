@@ -14,8 +14,10 @@ log = logging.getLogger("nutmap")
 
 NEGATIVE_SAMPLE_RATE = 5.0
 RACE = "race"
+BLENDED = "blended"
 BRIDGE_VERSION = 3
 CHANNELS = {"pictures": "Pictures", "names": "Names and keywords"}
+RESERVED = {RACE, BLENDED, *CHANNELS}
 
 
 def unit(x):
@@ -23,19 +25,21 @@ def unit(x):
     return x / np.maximum(np.linalg.norm(x, axis=-1, keepdims=True), 1e-12)
 
 
+def pooled(vectors, mask):
+    return unit((vectors * mask[..., None]).sum(0) / np.maximum(mask.sum(0), 1)[:, None])
+
+
 def viewpoint_vectors(ctx):
     mask = np.load(ctx.path("emb", "text_mask.npy"))
     views = unit(np.load(ctx.path("emb", "text.npy")))
-    blend = unit((views * mask[..., None]).sum(0) / np.maximum(mask.sum(0), 1)[:, None])
+    blend = pooled(views, mask)
     for i in range(len(views)):
         views[i][~mask[i]] = blend[~mask[i]]
     return blend, views
 
 
 def channel_vectors(ctx):
-    images = unit(np.load(ctx.path("emb", "image.npy")))
-    mask = np.load(ctx.path("emb", "image_mask.npy"))
-    pictures = unit((images * mask[..., None]).sum(0) / np.maximum(mask.sum(0), 1)[:, None])
+    pictures = pooled(unit(np.load(ctx.path("emb", "image.npy"))), np.load(ctx.path("emb", "image_mask.npy")))
     return {"pictures": pictures, "names": unit(np.load(ctx.path("emb", "cldr.npy")))}
 
 
@@ -208,6 +212,9 @@ class Viewpoints(Stage):
         if (lc["n_neighbors"], lc["min_dist"]) != (vc["n_neighbors"], vc["min_dist"]):
             raise PipelineError("viewpoints: n_neighbors and min_dist must match [layout], so the race-map sweep starts from a layout of its own graph")
         angles = durable.read_json(ctx.path("emb", "angles.json"))
+        clashes = sorted(RESERVED.intersection(angles))
+        if clashes:
+            raise PipelineError(f"viewpoints: viewpoint ids {', '.join(clashes)} are reserved for other maps")
         blend, views = viewpoint_vectors(ctx)
         similarity = np.load(ctx.path("graph", "smix.npy"))
         cache = ctx.path("viewpoints", "chunks")

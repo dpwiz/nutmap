@@ -3,7 +3,7 @@ import logging
 from . import durable
 from .context import Stage, register
 from .inventory import load_entries
-from .viewpoints import viewpoint_maps
+from .viewpoints import BLENDED, viewpoint_maps
 
 log = logging.getLogger("nutmap")
 
@@ -49,7 +49,7 @@ class Export(Stage):
                     "cost": r["cost"],
                     "parent": r["parent"],
                     "parent_relation": notes.get((e["id"], r["parent"])),
-                    "viewpoint_maps": {"blended": rounded(blended[e["index"]]), **{a: rounded(xy[e["index"]]) for a, xy in views.items()}},
+                    "viewpoint_maps": {BLENDED: rounded(blended[e["index"]]), **{a: rounded(xy[e["index"]]) for a, xy in views.items()}},
                 }
             )
         edges = [
@@ -62,7 +62,7 @@ class Export(Stage):
             "models": durable.read_json(ctx.path("emb", "models.json")),
             "panel_model": ctx.cfg["panel"]["model"],
             "graph": ctx.cfg["graph"],
-            "viewpoint_maps": {"anchor": "blended", "maps": list(views), "aligned_to": "blended", "layouts_per_sweep": ctx.cfg["viewpoints"]["layouts"]},
+            "viewpoint_maps": {"anchor": BLENDED, "maps": list(views), "aligned_to": BLENDED, "layouts_per_sweep": ctx.cfg["viewpoints"]["layouts"]},
             "counts": {"nodes": len(nodes), "edges": len(edges)},
         }
         durable.atomic_write_json(ctx.path("out", "nutmap.json"), {"meta": meta, "nodes": nodes, "edges": edges}, indent=None)

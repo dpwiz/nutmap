@@ -75,9 +75,8 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
     location.hash = hash(null, null, shown);
   };
 
-  const swapTo = (i: number) => {
-    if (!focusId) return;
-    location.hash = hash(base.nodes[i].id, focusId, shown);
+  const swapTo = (start: number, finish: number) => {
+    location.hash = hash(base.nodes[start].id, base.nodes[finish].id, shown);
   };
 
   const view = new MapView(canvas, base, {
@@ -122,7 +121,7 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   }
 
   async function apply(): Promise<void> {
-    const [f, s, v] = parse();
+    const [f, , v] = parse();
     if (v !== shown) void moveTo(v);
     if (f === null && focusId !== null) {
       focusId = null;
@@ -151,6 +150,7 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
       const node = base.nodes[current.root];
       document.title = `${node.c} ${node.n} · nutmap`;
     }
+    const [, s] = parse();
     pinnedId = s;
     pinned = s === null ? null : (base.index.get(s) ?? null);
     view.setPinned(pinned);
