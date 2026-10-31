@@ -75,6 +75,11 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
     location.hash = hash(null, null, shown);
   };
 
+  const swapTo = (i: number) => {
+    if (!focusId) return;
+    location.hash = hash(base.nodes[i].id, focusId, shown);
+  };
+
   const view = new MapView(canvas, base, {
     onFocus: focusTo,
     onPin: pinTo,
@@ -83,7 +88,7 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
       panels.setPath(hovered ?? pinned, hovered === null && pinned !== null);
     },
   });
-  const panels = new Panels(panel, base, { onFocus: focusTo, onPin: pinTo, onView: viewTo, onClear: clearTo });
+  const panels = new Panels(panel, base, { onFocus: focusTo, onPin: pinTo, onView: viewTo, onClear: clearTo, onSwap: swapTo });
   const motion = new ViewMotion(base, (xs, ys, rivers) => view.setPositions(xs, ys, rivers));
 
   let mapFailed = false;

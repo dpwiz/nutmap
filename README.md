@@ -90,6 +90,7 @@ Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Fiv
 - **[The interactive map](https://nutmap.ic-rbow.workers.dev).**
   - Pan and zoom across all 1,734 emoji, close enough to pull apart even the tightest clusters. Click any emoji to make it the finish line, and the map redraws as rivers draining into it; clear the focus to see just the emoji.
   - Hover over another emoji to see its race to the finish line, with the reason for every step. On a touch screen, tap once to see the race and again to make that emoji the finish line.
+  - Swap a pinned race to run it the other way. The route comes back reversed, apart from a handful of equally short alternatives, and steps whose reason was written for one direction get the one written for the other.
   - A side panel lists the basins, searches names and keywords, and shows what the 24 viewpoints said about the focused emoji. Their links lead on to other emoji.
   - A map selector switches between the race map, each part of its similarity on its own (blended descriptions, pictures, names and keywords) and any single viewpoint. Every emoji slides along the fitted sweeps, always through the blended map, and the rivers fade on maps they weren't worked out for.
   - Every view, including the chosen map, has its own URL, so a race can be shared.

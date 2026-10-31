@@ -8,6 +8,7 @@ export interface PanelEvents {
   onPin(i: number | null): void;
   onView(id: string): void;
   onClear(): void;
+  onSwap(i: number): void;
 }
 
 type Child = Node | string | null | undefined | false;
@@ -20,6 +21,14 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, ...chil
     e.append(c);
   }
   return e;
+}
+
+function action(label: string, run: () => void, title?: string): HTMLButtonElement {
+  const b = el("button", "link", label);
+  b.type = "button";
+  if (title) b.title = title;
+  b.addEventListener("click", run);
+  return b;
 }
 
 const fmt = new Intl.NumberFormat("en");
@@ -186,11 +195,8 @@ export class Panels {
     this.d = d;
     this.pal = pal;
     const node = this.base.nodes[d.root];
-    const clear = el("button", "link", "clear");
-    clear.type = "button";
-    clear.addEventListener("click", () => this.events.onClear());
     this.focusCard.replaceChildren(
-      el("p", "eyebrow", "Focus · ", clear),
+      el("p", "eyebrow", "Focus · ", action("clear", () => this.events.onClear())),
       el(
         "div",
         "focusrow",
@@ -246,13 +252,17 @@ export class Panels {
         ),
       );
     }
-    let unpin: HTMLButtonElement | null = null;
+    const eyebrow = el("p", "eyebrow", "Race path");
     if (pinned) {
-      unpin = el("button", "link", "unpin");
-      unpin.type = "button";
-      unpin.addEventListener("click", () => this.events.onPin(null));
+      const node = this.base.nodes[i];
+      eyebrow.append(
+        " · ",
+        action("unpin", () => this.events.onPin(null)),
+        " · ",
+        action("swap", () => this.events.onSwap(i), `Race the other way: make ${node.c} ${node.n} the focus`),
+      );
     }
-    this.pathBox.replaceChildren(el("p", "eyebrow", "Race path", unpin ? " · " : null, unpin), list);
+    this.pathBox.replaceChildren(eyebrow, list);
   }
 
   private renderBasins(): void {
