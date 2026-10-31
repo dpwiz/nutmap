@@ -1,0 +1,119 @@
+[[angle]]
+id = "literal"
+title = "Literal depiction"
+instruction = "Describe exactly what is drawn: the object, figure or symbol, its parts and pose, as if explaining the picture to someone who cannot see it."
+
+[[angle]]
+id = "shape"
+title = "Colour and shape"
+instruction = "Ignore meaning. Describe only colours, silhouette, geometry, proportions and visual texture. Link to emoji that look alike."
+
+[[angle]]
+id = "taxonomist"
+title = "Taxonomist"
+instruction = "Classify the thing: what kind of thing it is, its category, what it is a member of, and its closest siblings in that classification."
+
+[[angle]]
+id = "chef"
+title = "Chef"
+instruction = "Think like a cook. What role could this play in a kitchen, a dish, a meal or a market, even loosely or metaphorically?"
+
+[[angle]]
+id = "naturalist"
+title = "Naturalist"
+instruction = "Think like a botanist, zoologist and geologist. Where does this exist in nature, what lives with it, eats it, grows from it or is made of it?"
+
+[[angle]]
+id = "child"
+title = "Five-year-old"
+instruction = "Answer as an enthusiastic five-year-old: simple words, what it reminds you of, what it is for, what is fun or scary about it."
+
+[[angle]]
+id = "slang"
+title = "Texting and internet slang"
+instruction = "Describe how people actually use this emoji in messages and online, including double meanings, memes, irony and innuendo kept tasteful."
+
+[[angle]]
+id = "vibe"
+title = "Emotional vibe"
+instruction = "Describe the mood, feeling and energy this emoji carries, and which situations or emotional moments it fits."
+
+[[angle]]
+id = "seasons"
+title = "Seasons and holidays"
+instruction = "Place this in time: seasons, months, holidays, festivals, times of day and recurring life events it belongs to."
+
+[[angle]]
+id = "japan"
+title = "Japanese origin"
+instruction = "Many emoji began on Japanese mobile carriers. Describe any Japanese cultural meaning, origin or usage of this emoji, or how a Japanese viewer might read it."
+
+[[angle]]
+id = "crosscultural"
+title = "Cross-cultural meanings"
+instruction = "Describe how the meaning or connotation of this emoji differs across cultures, regions, languages or religions around the world."
+
+[[angle]]
+id = "storyteller"
+title = "Storyteller"
+instruction = "Imagine the fairy tales, fables, films and scenes in which this appears. What happens around it, who is there, and what comes next?"
+
+[[angle]]
+id = "punster"
+title = "Punster"
+instruction = "Find wordplay: puns, homophones, idioms, sayings, rhymes and figures of speech connected to this emoji or its name."
+
+[[angle]]
+id = "historian"
+title = "Historian"
+instruction = "Describe the history of the thing depicted and of its name: origins, etymology, notable historical moments and how its meaning changed."
+
+[[angle]]
+id = "senses"
+title = "Material and senses"
+instruction = "Describe how it would feel, smell, sound, taste and weigh: texture, temperature, hardness, materials and physical sensations."
+
+[[angle]]
+id = "physics"
+title = "Scale and physics"
+instruction = "Describe its size, mass, speed, energy and physical behaviour, and what it is comparable to in scale, from atoms to galaxies."
+
+[[angle]]
+id = "economy"
+title = "Trade and economy"
+instruction = "Describe where it comes from economically: who makes, grows, sells or buys it, its value, supply chains, industries and money around it."
+
+[[angle]]
+id = "gamedesign"
+title = "Game designer"
+instruction = "Imagine it in a video game or board game: is it an item, enemy, power-up, location, character or resource, and what does it do?"
+
+[[angle]]
+id = "poet"
+title = "Poet"
+instruction = "Describe its symbolism and metaphors: what it stands for in poetry, art and dreams, and what deeper ideas it evokes."
+
+[[angle]]
+id = "jobs"
+title = "Jobs and workplaces"
+instruction = "Describe which professions, workplaces, tools of the trade and daily work routines involve this."
+
+[[angle]]
+id = "sport"
+title = "Sports and play"
+instruction = "Describe connections to sports, games, hobbies, toys, competitions and leisure activities."
+
+[[angle]]
+id = "body"
+title = "Body and health"
+instruction = "Describe connections to the human body, health, medicine, nutrition, fitness, illness and wellbeing."
+
+[[angle]]
+id = "places"
+title = "Where you would find it"
+instruction = "Describe where you would find it: which room of a house, which part of a city or landscape, which building, shop or vehicle."
+
+[[angle]]
+id = "association"
+title = "Free word association"
+instruction = "Play a fast word-association game: describe the chain of first things that spring to mind, however surprising."

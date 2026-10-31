@@ -1,0 +1,9 @@
+{
+ "digest": "782f2a60b87da4d830a22b6284a73c223c2278eb81fa3bd26f4b62165769b686",
+ "outputs": [
+  "inventory/emoji.jsonl",
+  "inventory/aliases.json",
+  "inventory/summary.json"
+ ],
+ "seconds": 0.1
+}

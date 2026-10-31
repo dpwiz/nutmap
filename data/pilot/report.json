@@ -1,0 +1,16 @@
+{
+ "angles": 24,
+ "avg_in_tokens": 676.7,
+ "avg_out_tokens": 414.0,
+ "dead": 0,
+ "emoji": 40,
+ "failed_attempts": 0,
+ "full_calls": 41616,
+ "link_resolution_rate": 0.9996,
+ "links": 5706,
+ "links_resolved": 5704,
+ "ok": 960,
+ "pilot_usd": 0.2637,
+ "projected_full_usd": 5.72,
+ "refused": 0
+}

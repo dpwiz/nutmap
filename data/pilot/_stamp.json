@@ -1,0 +1,8 @@
+{
+ "digest": "81f6efadc3747c6b3e271fa5c7dd51830ca72eaf277bb03fd7413dc7122c9b28",
+ "outputs": [
+  "pilot/report.md",
+  "pilot/report.json"
+ ],
+ "seconds": 0.1
+}

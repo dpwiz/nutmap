@@ -1,0 +1,17 @@
+{
+ "raw/cldr/annotations-en.xml": {
+  "bytes": 296588,
+  "sha256": "14d0e9bb5003c085250df4ac7bd7ba1e26d92e74174d7a3a2f42dc16e07fb155",
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/en.xml"
+ },
+ "raw/cldr/annotationsDerived-en.xml": {
+  "bytes": 550107,
+  "sha256": "a4a6c1a4c341d94179cb116623c5f44c47400a5bc55da483423ef7430ecf622e",
+  "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/en.xml"
+ },
+ "raw/unicode/emoji-test.txt": {
+  "bytes": 671655,
+  "sha256": "8f3735cda1f92a779d78af67cf86066bb1f07143dc22f2ac29394d9bc57ab21a",
+  "url": "https://www.unicode.org/Public/18.0.0/emoji/emoji-test.txt"
+ }
+}

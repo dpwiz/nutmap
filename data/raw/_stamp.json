@@ -1,0 +1,9 @@
+{
+ "digest": "c41c8ebe533a468928f2dda37f72765d176aaec40f131299538867e52f6cf59c",
+ "outputs": [
+  "raw/unicode/emoji-test.txt",
+  "raw/cldr/annotations-en.xml",
+  "raw/cldr/annotationsDerived-en.xml"
+ ],
+ "seconds": 1.9
+}

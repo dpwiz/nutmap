@@ -1,0 +1,93 @@
+root = "🌰"
+data_dir = "data"
+angles_file = "angles.toml"
+
+[sources]
+noto_dir = "third_party/noto-emoji"
+emoji_test_url = "https://www.unicode.org/Public/18.0.0/emoji/emoji-test.txt"
+cldr_annotations_url = "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotations/en.xml"
+cldr_derived_url = "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/annotationsDerived/en.xml"
+
+[subset]
+limit = 0
+angles = []
+
+[render]
+styles = ["3d", "2d"]
+size = 384
+
+[panel]
+model = "claude-haiku-5-5"
+effort = "low"
+max_tokens = 2000
+max_attempts = 3
+pilot_size = 40
+pilot_probes = ["🌰", "🐿️", "🥜", "🍂", "🚀", "🇯🇵", "😂", "🧑‍🌾", "🏳️‍🌈", "🐻‍❄️"]
+pilot_concurrency = 8
+poll_seconds = 30
+lost_batch_settle_seconds = 60
+auto_resubmit_lost = true
+price_in_per_mtok = 0.10
+price_out_per_mtok = 0.50
+batch_discount = 0.5
+
+[embed]
+device = "auto"
+vram_gb = 8
+chunk = 256
+batch_size = 32
+text_model = "Qwen/Qwen3-Embedding-0.6B"
+text_revision = "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3"
+text_model_cpu = "BAAI/bge-base-en-v1.5"
+text_revision_cpu = "a5beb1e3e68b9ab74eb54cfd186867f64f240e1a"
+image_model = "google/siglip2-so400m-patch14-384"
+image_revision = "e8e487298228002f3d8a82e0cd5c8ea9c567f57f"
+image_model_cpu = "google/siglip-base-patch16-224"
+image_revision_cpu = "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
+
+[graph]
+k = 12
+p = 2.0
+eps = 0.001
+w_text = 0.6
+w_image = 0.3
+w_cldr = 0.1
+gamma_panel = 0.85
+votes_cap = 8
+gamma_parts = 0.5
+hop_cost = 0.0001
+
+[race]
+probes = ["🐿️", "🥜", "🍂", "🚀", "🇯🇵", "😂", "🧑‍🌾", "🏳️‍🌈", "🐻‍❄️", "💻", "🦖", "🎻", "🏴‍☠️", "🧑‍🦰"]
+
+[explain]
+model = "claude-haiku-5-5"
+effort = "low"
+max_tokens = 1000
+all_focuses = true
+
+[layout]
+n_neighbors = 15
+min_dist = 0.1
+random_state = 42
+thumb_px = 18
+
+[viewpoints]
+layouts = 60
+easing = 10.0
+n_neighbors = 15
+min_dist = 0.1
+epochs = 200
+alignment = 0.02
+window = 3
+learning_rate = 0.25
+anchor_stiffness = 10.0
+stiffness_fade = 0.02
+seed = 42
+workers = 6
+
+[flowmap]
+colored_basins = 3
+landmarks = 40
+river_min_flow = 3
+facets = 8

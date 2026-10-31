@@ -1,0 +1,8 @@
+{
+ "digest": "14c9449c4b4104e3d2d2dbbd626c1eacd8414ee806728f0391aabd42145f6ce9",
+ "outputs": [
+  "viewpoints/sweeps.json",
+  "viewpoints/sweeps.bin"
+ ],
+ "seconds": 1.7
+}

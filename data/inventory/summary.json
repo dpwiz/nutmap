@@ -1,0 +1,12 @@
+{
+ "dropped_gendered": 193,
+ "dropped_skin_tone": 2040,
+ "final": 1734,
+ "flags": 270,
+ "fully_qualified": 3963,
+ "hair_component": 4,
+ "kept": 1734,
+ "with_cldr_keywords": 1734,
+ "with_parts": 56,
+ "zwj_sequences": 56
+}

@@ -1,0 +1,21 @@
+{
+  "name": "nutmap-site",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "data": "cd .. && uv run python -m nutmap web",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && bun scripts/pack.ts",
+    "preview": "vite preview",
+    "deploy": "bun run data && bun run build && cf deploy --prebuilt --mode production"
+  },
+  "devDependencies": {
+    "@cloudflare/build-output-utils": "0.9.6",
+    "@cloudflare/config": "0.29.0",
+    "@types/bun": "latest",
+    "cf": "1.0.0-beta.26",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}
