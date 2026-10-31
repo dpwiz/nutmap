@@ -11,6 +11,32 @@ from .inventory import load_entries
 log = logging.getLogger("nutmap")
 
 
+def race_distances(similarity):
+    distances = 1.0 - similarity.astype(np.float64)
+    np.fill_diagonal(distances, 0.0)
+    return distances
+
+
+def race_layout(distances, lc):
+    import umap
+
+    n = len(distances)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reducer = umap.UMAP(
+            metric="precomputed",
+            n_neighbors=min(lc["n_neighbors"], n - 1),
+            min_dist=lc["min_dist"],
+            random_state=lc["random_state"],
+            init="spectral" if n > 50 else "random",
+        )
+        return reducer.fit_transform(distances)
+
+
+def standardised(xy):
+    return (xy - xy.mean(0)) / np.maximum(xy.std(0), 1e-9)
+
+
 def draw(ctx, entries, xy, out_path):
     import matplotlib
 
@@ -51,25 +77,10 @@ class Layout(Stage):
         return ["map/umap.json", "map/umap.png"]
 
     def run(self, ctx):
-        import umap
-
-        lc = ctx.cfg["layout"]
         entries = load_entries(ctx)
-        S = np.load(ctx.path("graph", "smix.npy")).astype(np.float64)
-        D = 1.0 - S
-        np.fill_diagonal(D, 0.0)
+        distances = race_distances(np.load(ctx.path("graph", "smix.npy")))
         durable.check_stop()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            reducer = umap.UMAP(
-                metric="precomputed",
-                n_neighbors=min(lc["n_neighbors"], len(entries) - 1),
-                min_dist=lc["min_dist"],
-                random_state=lc["random_state"],
-                init="spectral" if len(entries) > 50 else "random",
-            )
-            xy = reducer.fit_transform(D)
-        xy = (xy - xy.mean(0)) / np.maximum(xy.std(0), 1e-9)
+        xy = standardised(race_layout(distances, ctx.cfg["layout"]))
         coords = {e["id"]: [round(float(x), 5), round(float(y), 5)] for e, (x, y) in zip(entries, xy)}
         durable.atomic_write_json(ctx.path("map", "umap.json"), coords, indent=None)
         draw(ctx, entries, xy, ctx.path("map", "umap.png"))

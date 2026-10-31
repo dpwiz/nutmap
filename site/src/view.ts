@@ -1,6 +1,6 @@
 import type { Base } from "./data.ts";
 import { chain, type Drainage } from "./tree.ts";
-import { palette, riverCurves, stepCurve, type Curve, type Palette } from "./rivers.ts";
+import { palette, riverOrder, stepCurve, type Curve, type Palette } from "./rivers.ts";
 
 export interface MapEvents {
   onFocus(i: number): void;
@@ -32,8 +32,11 @@ export class MapView {
   private d: Drainage | null = null;
   private pal: Palette | null = null;
   private curves: Curve[] = [];
+  private riverUs: number[] = [];
   private byFlow: number[] = [];
   private rivers = 1;
+  private indexed = false;
+  private mouse: [number, number] | null = null;
   private hover: number | null = null;
   private pinned: number | null = null;
   private scale = 1;
@@ -69,7 +72,10 @@ export class MapView {
     canvas.addEventListener("pointermove", (e) => this.pointerMove(e));
     canvas.addEventListener("pointerup", (e) => this.pointerUp(e));
     canvas.addEventListener("pointercancel", (e) => this.pointerUp(e, true));
-    canvas.addEventListener("pointerleave", () => this.setHover(null));
+    canvas.addEventListener("pointerleave", () => {
+      this.mouse = null;
+      this.setHover(null);
+    });
     canvas.addEventListener("wheel", (e) => this.wheel(e), { passive: false });
     this.resize();
   }
@@ -77,7 +83,8 @@ export class MapView {
   setDrainage(d: Drainage): void {
     this.d = d;
     this.pal = palette(d, this.base.meta);
-    this.curves = riverCurves(d, this.xs, this.ys, this.base.meta.riverMinFlow);
+    this.riverUs = riverOrder(d, this.base.meta.riverMinFlow);
+    this.curves = this.riverUs.map((u) => stepCurve(d, this.xs, this.ys, u));
     this.byFlow = Array.from(d.flow.keys()).sort((a, b) => d.flow[b] - d.flow[a] || a - b);
     this.ensureVisible(d.root);
     this.invalidate();
@@ -87,12 +94,21 @@ export class MapView {
     this.xs.set(xs);
     this.ys.set(ys);
     this.rivers = rivers;
-    this.index();
-    if (this.d) this.curves = riverCurves(this.d, this.xs, this.ys, this.base.meta.riverMinFlow);
+    this.indexed = false;
+    const d = this.d;
+    if (d) this.curves = this.riverUs.map((u) => stepCurve(d, this.xs, this.ys, u));
+    if (this.mouse) this.setHover(this.hit(this.mouse[0], this.mouse[1]));
+    this.invalidate();
+  }
+
+  revealFocus(): void {
+    if (!this.d) return;
+    this.ensureVisible(this.d.root);
     this.invalidate();
   }
 
   private index(): void {
+    this.indexed = true;
     this.grid.clear();
     for (let i = 0; i < this.xs.length; i++) {
       const key = this.cellKey(Math.floor(this.xs[i] / CELL), Math.floor(this.ys[i] / CELL));
@@ -159,6 +175,7 @@ export class MapView {
   }
 
   private hit(px: number, py: number): number | null {
+    if (!this.indexed) this.index();
     const radius = Math.max(10, this.spriteSize() / 2) / this.scale;
     const mx = (px - this.tx) / this.scale;
     const my = (py - this.ty) / this.scale;
@@ -235,7 +252,10 @@ export class MapView {
   private pointerMove(e: PointerEvent): void {
     const [x, y] = this.local(e);
     if (!this.pointers.has(e.pointerId)) {
-      if (e.pointerType === "mouse") this.setHover(this.hit(x, y));
+      if (e.pointerType === "mouse") {
+        this.mouse = [x, y];
+        this.setHover(this.hit(x, y));
+      }
       return;
     }
     this.pointers.set(e.pointerId, { x, y });
@@ -262,6 +282,7 @@ export class MapView {
   }
 
   private pointerUp(e: PointerEvent, cancelled = false): void {
+    if (!this.pointers.has(e.pointerId)) return;
     const [x, y] = this.local(e);
     const wasClick = !cancelled && this.pointers.size === 1 && this.drag !== null && !this.drag.moved;
     this.pointers.delete(e.pointerId);

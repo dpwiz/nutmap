@@ -14,7 +14,7 @@ from .flowmap import MUTED, SLOTS, pull_in, pull_in_params
 from .inventory import load_entries, load_resolver
 from .progress import make_progress
 from .render import source_path
-from .viewpoints import RACE, load_sweeps
+from .viewpoints import RACE, delta_planes, load_sweeps, quantised
 
 log = logging.getLogger("nutmap")
 
@@ -91,10 +91,7 @@ def screen_sweeps(ctx, ids):
 
 
 def encode_view(layouts, lo, hi):
-    levels = np.round((layouts - lo) / (hi - lo) * 65535).astype("<u2")
-    steps = np.concatenate([levels[:1], levels[1:] - levels[:-1]], axis=0)
-    planes = np.ascontiguousarray(steps).view(np.uint8).reshape(-1, 2).T
-    return gzip.compress(planes.tobytes(), compresslevel=9, mtime=0)
+    return gzip.compress(delta_planes(quantised(layouts, lo, hi), 0), compresslevel=9, mtime=0)
 
 
 @register

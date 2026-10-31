@@ -1,12 +1,12 @@
 import logging
 import multiprocessing
 import signal
-import warnings
 
 import numpy as np
 
 from . import durable
 from .context import PipelineError, Stage, register
+from .layout import race_distances, race_layout, standardised
 from .motion import align, eased_alphas, normalise
 from .progress import make_progress
 
@@ -55,32 +55,6 @@ def neighbour_graph(vectors, n_neighbors, seed):
 
 def neighbour_scale(distances, k):
     return float(np.median(np.sort(distances, axis=1)[:, k]))
-
-
-def race_distances(similarity):
-    distances = 1.0 - similarity.astype(np.float64)
-    np.fill_diagonal(distances, 0.0)
-    return distances
-
-
-def race_layout(distances, lc):
-    import umap
-
-    n = len(distances)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        reducer = umap.UMAP(
-            metric="precomputed",
-            n_neighbors=min(lc["n_neighbors"], n - 1),
-            min_dist=lc["min_dist"],
-            random_state=lc["random_state"],
-            init="spectral" if n > 50 else "random",
-        )
-        return reducer.fit_transform(distances)
-
-
-def standardised(xy):
-    return (xy - xy.mean(0)) / np.maximum(xy.std(0), 1e-9)
 
 
 def typed_list(kind, arrays):
@@ -158,13 +132,19 @@ def sweep_job(job):
     return name, (None, sweep(blend, other, anchor, vc))
 
 
+def quantised(xy, lo, hi):
+    return np.round((xy - lo) / (hi - lo) * 65535).astype("<u2")
+
+
+def delta_planes(levels, axis):
+    steps = np.concatenate([np.take(levels, [0], axis=axis), np.diff(levels, axis=axis)], axis=axis)
+    return np.ascontiguousarray(steps).view(np.uint8).reshape(-1, 2).T.tobytes()
+
+
 def encode_sweeps(sweeps):
     lo = sweeps.min(axis=(0, 1, 2)).astype(np.float64)
     hi = sweeps.max(axis=(0, 1, 2)).astype(np.float64)
-    levels = np.round((sweeps - lo) / (hi - lo) * 65535).astype("<u2")
-    steps = np.concatenate([levels[:, :1], levels[:, 1:] - levels[:, :-1]], axis=1)
-    planes = np.ascontiguousarray(steps).view(np.uint8).reshape(-1, 2).T
-    return lo, hi, planes.tobytes()
+    return lo, hi, delta_planes(quantised(sweeps, lo, hi), 1)
 
 
 def decode_sweeps(payload, shape, lo, hi):
@@ -211,12 +191,14 @@ class Viewpoints(Stage):
         if meta:
             return f"the race-map bridge and {len(meta['angles'])} viewpoint sweeps, {meta['shape'][1]} layouts each"
         d = ctx.path("viewpoints", "chunks")
-        n = sum(1 for f in d.glob("*.npy") if not f.name.startswith("anchor_")) if d.exists() else 0
+        n = sum(1 for _ in d.glob("*.npy")) if d.exists() else 0
         return f"{n} sweeps fitted so far"
 
     def run(self, ctx):
         vc = self.fit_settings(ctx)
         lc = self.layout_settings(ctx)
+        if (lc["n_neighbors"], lc["min_dist"]) != (vc["n_neighbors"], vc["min_dist"]):
+            raise PipelineError("viewpoints: n_neighbors and min_dist must match [layout], so the race-map sweep starts from a layout of its own graph")
         angles = durable.read_json(ctx.path("emb", "angles.json"))
         blend, views = viewpoint_vectors(ctx)
         similarity = np.load(ctx.path("graph", "smix.npy"))

@@ -41,12 +41,12 @@ export function stepCurve(d: Drainage, xs: Float64Array, ys: Float64Array, u: nu
   };
 }
 
-export function riverCurves(d: Drainage, xs: Float64Array, ys: Float64Array, minFlow: number): Curve[] {
-  const out: Curve[] = [];
+export function riverOrder(d: Drainage, minFlow: number): number[] {
+  const out: number[] = [];
   for (let u = 0; u < d.parent.length; u++) {
-    if (u !== d.root && d.flow[u] >= minFlow) out.push(stepCurve(d, xs, ys, u));
+    if (u !== d.root && d.flow[u] >= minFlow) out.push(u);
   }
-  return out.sort((a, b) => d.flow[a.u] - d.flow[b.u] || a.u - b.u);
+  return out.sort((a, b) => d.flow[a] - d.flow[b] || a - b);
 }
 
 export interface Palette {

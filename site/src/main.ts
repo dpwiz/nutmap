@@ -78,15 +78,33 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   const panels = new Panels(panel, base, { onFocus: focusTo, onPin: pinTo, onView: viewTo });
   const motion = new ViewMotion(base, (xs, ys, rivers) => view.setPositions(xs, ys, rivers));
 
-  async function moveTo(v: string): Promise<void> {
-    const first = shown === null;
-    shown = v;
+  let mapFailed = false;
+
+  const label = (v: string) => {
     panels.setView(v);
     caption.textContent = v === race ? "" : panels.title(v);
+  };
+
+  async function moveTo(v: string): Promise<void> {
+    const first = shown === null;
+    const before = shown ?? race;
+    shown = v;
+    label(v);
     try {
       await motion.go(v, first);
+      if (mapFailed) {
+        mapFailed = false;
+        status.textContent = "";
+      }
+      view.revealFocus();
     } catch (err) {
+      mapFailed = true;
       status.textContent = `Could not load that map: ${String(err)}`;
+      if (shown === v) {
+        shown = before;
+        label(before);
+        history.replaceState(null, "", hash(focusId ?? base.meta.root, pinnedId, before));
+      }
     }
   }
 

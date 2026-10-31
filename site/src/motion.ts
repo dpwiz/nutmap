@@ -46,20 +46,15 @@ export class ViewMotion {
     this.ys = new Float64Array(base.nodes.length);
   }
 
-  async go(view: string, instant: boolean): Promise<boolean> {
+  async go(view: string, instant: boolean): Promise<void> {
     const token = ++this.token;
     const legs = this.legs(view);
-    if (!legs.length) return true;
-    const data = new Map<string, Float32Array>();
-    for (const leg of legs) data.set(leg.sweep, await loadSweep(leg.sweep, this.base.meta));
-    if (token !== this.token) return false;
-    for (const leg of legs) {
-      const sweep = data.get(leg.sweep);
-      if (!sweep) return false;
-      if (instant) this.at(sweep, leg.sweep, leg.to);
-      else if (!(await this.run(token, sweep, leg))) return false;
+    const sweeps = await Promise.all(legs.map((leg) => loadSweep(leg.sweep, this.base.meta)));
+    for (const [k, leg] of legs.entries()) {
+      if (token !== this.token) return;
+      if (instant) this.at(sweeps[k], leg.sweep, leg.to);
+      else if (!(await this.run(token, sweeps[k], leg))) return;
     }
-    return true;
   }
 
   private legs(view: string): Leg[] {
@@ -79,7 +74,7 @@ export class ViewMotion {
       const frame = (now: number) => {
         if (token !== this.token) return resolve(false);
         const u = Math.min(1, (now - start) / duration);
-        this.at(sweep, leg.sweep, leg.from + (leg.to - leg.from) * ease(u));
+        this.at(sweep, leg.sweep, u < 1 ? leg.from + (leg.to - leg.from) * ease(u) : leg.to);
         if (u < 1) requestAnimationFrame(frame);
         else resolve(true);
       };
@@ -99,7 +94,8 @@ export class ViewMotion {
       const alphas = this.base.meta.views.alphas;
       let k = 0;
       while (k < alphas.length - 2 && alphas[k + 1] < alpha) k++;
-      const f = Math.min(1, Math.max(0, (alpha - alphas[k]) / (alphas[k + 1] - alphas[k])));
+      const span = alphas[k + 1] - alphas[k];
+      const f = span > 0 ? Math.min(1, Math.max(0, (alpha - alphas[k]) / span)) : 1;
       const stride = this.xs.length * 2;
       const a = k * stride;
       const b = a + stride;
