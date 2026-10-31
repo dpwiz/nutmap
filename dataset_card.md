@@ -45,7 +45,8 @@ Think of it as Wikipedia racing for emoji:
 > 🐿️ → 🌰 *chipmunks stuff acorns and nuts into their cheeks*
 
 - **[Interactive map](https://nutmap.ic-rbow.workers.dev):** pick any emoji as the finish line and watch every other emoji drain into it; switch between the race map, the component maps and each viewpoint's map.
-- **[Video](https://www.youtube.com/watch?v=oN4GZm7bwsc):** the map morphing from description similarity to picture similarity and back.
+- **[Viewpoints](https://github.com/dpwiz/nutmap/blob/main/docs/viewpoints.md):** every viewpoint's instruction, its map, and what it said about 🌰 and 🐉.
+- **Videos:** [the morph](https://www.youtube.com/watch?v=oN4GZm7bwsc), from description similarity to picture similarity and back, and [the viewpoint tour](https://www.youtube.com/watch?v=_otlOBEtCgg), from the blended map out to each viewpoint's map and back.
 - **[Source](https://github.com/dpwiz/nutmap):** the pipeline that builds all of this, rebuildable byte for byte.
 
 ## Configurations

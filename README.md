@@ -12,7 +12,7 @@ Think of it as Wikipedia racing for emoji. Each step moves to an emoji that is c
 >
 > 🐿️ → 🌰 *chipmunks stuff acorns and nuts into their cheeks*
 
-**[Explore the map →](https://nutmap.ic-rbow.workers.dev)** Any emoji can be the finish line, not just the chestnut.
+**[Explore the map →](https://nutmap.ic-rbow.workers.dev)** Any emoji can be the finish line, not just the chestnut. The whole dataset is on [Hugging Face](https://huggingface.co/datasets/dpwiz/nutmap).
 
 ![How 1,734 emoji drain into the chestnut](data/flow/flowmap.png)
 
@@ -21,7 +21,7 @@ Think of it as Wikipedia racing for emoji. Each step moves to an emoji that is c
 - **The emoji.** All 1,734 fully-qualified emoji of Unicode 18.0, with their Unicode names, CLDR keywords, and their 3D and flat images from Google's Noto Emoji.
   - Skin-tone variants and gendered variants that have a gender-neutral form are folded into that base emoji.
   - Sequences such as 🐻‍❄️ or 🧑‍🌾 are emoji of their own, linked to their parts (🐻 and ❄️, 🧑 and 🌾). The four hair components (🦰 🦱 🦳 🦲) are included as parts.
-- **24 viewpoints on every emoji.** 41,616 short descriptions written by Claude Haiku, one per emoji per viewpoint, each with keywords. Each also links to other emoji it relates to, with a reason for every link: 248,469 links, 99.9% of which resolve to an emoji in the set.
+- **[24 viewpoints](docs/viewpoints.md) on every emoji.** 41,616 short descriptions written by Claude Haiku, one per emoji per viewpoint, each with keywords. Each also links to other emoji it relates to, with a reason for every link: 248,469 links, 99.9% of which resolve to an emoji in the set.
 - **Similarity.** Every pair of emoji is scored on three things: how similarly the viewpoints describe them, how alike their images look, and how close their names and keywords are.
 - **A similarity graph** of 96,167 connections: nearest neighbours, every link a viewpoint proposed, and part-of links.
 - **Races.** For every pair of emoji, the cheapest route between them. Together these routes use 29,698 distinct steps, and every step has a one-line note explaining it.
@@ -83,7 +83,9 @@ All of it took 47,360 Claude Haiku requests and cost $5.95: $0.26 for the pilot,
 
 ### The 24 viewpoints
 
-Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Five-year-old · Texting and internet slang · Emotional vibe · Seasons and holidays · Japanese origin · Cross-cultural meanings · Storyteller · Punster · Historian · Material and senses · Scale and physics · Trade and economy · Game designer · Poet · Jobs and workplaces · Sports and play · Body and health · Where you would find it · Free word association
+Each viewpoint's instruction, its map, and what it said about 🌰 and 🐉 are on [the viewpoints page](docs/viewpoints.md):
+
+[Literal depiction](docs/viewpoints.md#literal-depiction) · [Colour and shape](docs/viewpoints.md#colour-and-shape) · [Taxonomist](docs/viewpoints.md#taxonomist) · [Chef](docs/viewpoints.md#chef) · [Naturalist](docs/viewpoints.md#naturalist) · [Five-year-old](docs/viewpoints.md#five-year-old) · [Texting and internet slang](docs/viewpoints.md#texting-and-internet-slang) · [Emotional vibe](docs/viewpoints.md#emotional-vibe) · [Seasons and holidays](docs/viewpoints.md#seasons-and-holidays) · [Japanese origin](docs/viewpoints.md#japanese-origin) · [Cross-cultural meanings](docs/viewpoints.md#cross-cultural-meanings) · [Storyteller](docs/viewpoints.md#storyteller) · [Punster](docs/viewpoints.md#punster) · [Historian](docs/viewpoints.md#historian) · [Material and senses](docs/viewpoints.md#material-and-senses) · [Scale and physics](docs/viewpoints.md#scale-and-physics) · [Trade and economy](docs/viewpoints.md#trade-and-economy) · [Game designer](docs/viewpoints.md#game-designer) · [Poet](docs/viewpoints.md#poet) · [Jobs and workplaces](docs/viewpoints.md#jobs-and-workplaces) · [Sports and play](docs/viewpoints.md#sports-and-play) · [Body and health](docs/viewpoints.md#body-and-health) · [Where you would find it](docs/viewpoints.md#where-you-would-find-it) · [Free word association](docs/viewpoints.md#free-word-association)
 
 ## Visualisations
 
@@ -101,7 +103,9 @@ Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Fiv
 
 [![The emoji map morphing between text and image similarity, on YouTube](https://img.youtube.com/vi/oN4GZm7bwsc/maxresdefault.jpg)](https://www.youtube.com/watch?v=oN4GZm7bwsc)
 
-- **The viewpoint tour.** A 3-minute video loop that starts on the shared blended map, sweeps out to each viewpoint's map in turn, and comes back. Every map is held perfectly still for a second, so each viewpoint has a moment to be looked at.
+- **[The viewpoint tour](https://www.youtube.com/watch?v=_otlOBEtCgg).** A 3-minute video loop that starts on the shared blended map, sweeps out to each viewpoint's map in turn, and comes back. Every map is held perfectly still for a second, so each viewpoint has a moment to be looked at.
+
+[![The emoji map touring from the blended descriptions out to each viewpoint's map, on YouTube](https://img.youtube.com/vi/_otlOBEtCgg/maxresdefault.jpg)](https://www.youtube.com/watch?v=_otlOBEtCgg)
 
 ## Caveats
 
@@ -120,6 +124,6 @@ Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Fiv
 - Descriptions, links and step notes: generated with Claude Haiku 5.5 by Anthropic.
 - Embedding models: [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) and [SigLIP 2 so400m](https://huggingface.co/google/siglip2-so400m-patch14-384).
 
-The pipeline also packages the dataset for Hugging Face: Parquet tables of the emoji, the viewpoints' descriptions, the similarity graph, every race with its step reasons, and every map, with a dataset card.
+The dataset is published on Hugging Face as [dpwiz/nutmap](https://huggingface.co/datasets/dpwiz/nutmap): Parquet tables of the emoji, the viewpoints' descriptions, the similarity graph, every race with its step reasons, and every map, with a dataset card.
 
 Rebuilding, extending or modding the dataset is covered in [development.md](development.md).

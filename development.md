@@ -98,6 +98,7 @@ After the first `run`, force the stages downstream of the races, in this order:
 5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 40 minutes.
 6. `export --force` rewrites the combined export.
 7. `release --force` rebuilds the Hugging Face release.
+8. Rerun the script that writes [the viewpoints page](#the-viewpoints-page).
 
 NVIDIA GPUs would need PyTorch from a CUDA index instead of the ROCm one; that hasn't been tried.
 
@@ -163,7 +164,8 @@ These cost a few cents and need an API key.
   2. The run stops for `approve`.
   3. The panel submits one batch for that viewpoint: 1,734 requests, about 23 cents.
   4. Everything downstream rebuilds, including notes for any new race steps.
-- **Removing a viewpoint** is free. Its answers stay in the journals, unused.
+  5. Rerun the script that writes [the viewpoints page](#the-viewpoints-page).
+- **Removing a viewpoint** is free. Its answers stay in the journals, unused; rerun the viewpoints page script to drop its section.
 - **Re-asking.** Answers are remembered per viewpoint and emoji, and notes per step, not per prompt or model. Rewording a viewpoint's prompt or switching models therefore reuses the old answers. To really ask again, give the viewpoint a new id, which makes it a new viewpoint, or start from an empty data directory.
 - **Cost projection.** The pilot report projects the full panel's cost before you approve it. The original projection was $5.72, against $5.80 actually spent.
 
@@ -228,6 +230,18 @@ The tour script plays the pipeline's viewpoint maps: from the shared blended-tex
 - **`--move`** and **`--steepness`** set how long each sweep takes and how gently it leaves and arrives: 3 seconds on a logistic curve of steepness 12 by default.
 - **`--only`** visits just the listed ids, in the given order; besides viewpoint ids it takes `pictures`, `names` and `race`.
 - **`--sigma`** lightly smooths each emoji's path; the shared map itself is never moved.
+
+## The viewpoints page
+
+The [viewpoints page](docs/viewpoints.md) is written by a script in the scripts folder from the pipeline's data. For each viewpoint it lists the instruction from the viewpoint list, its map, how many neighbours it shares with the blended descriptions, and what it said about a few example emoji. The examples are 🌰 and 🐉 by default; `--examples` takes other emoji ids, and they are circled on every map.
+
+It needs the site's data, for the sprite sheet, and takes seconds. Rerun it whenever the descriptions, the viewpoint maps or the viewpoint list change:
+
+```bash
+uv run python scripts/viewpoint_docs.py
+```
+
+The maps are 1080p WebP stills of about 100 KB each, committed as plain files rather than through LFS. A few far-off emoji are tucked in towards the edges so the rest of each map fills the frame.
 
 ## Keeping the repository small
 
