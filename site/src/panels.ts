@@ -1,10 +1,12 @@
 import { loadDesc, type Base, type Viewpoint } from "./data.ts";
 import { chain, type Drainage } from "./tree.ts";
 import type { Palette } from "./rivers.ts";
+import { BLENDED } from "./motion.ts";
 
 export interface PanelEvents {
   onFocus(i: number): void;
   onPin(i: number | null): void;
+  onView(id: string): void;
 }
 
 type Child = Node | string | null | undefined | false;
@@ -30,6 +32,10 @@ export class Panels {
   private pathBox: HTMLElement;
   private basinBox: HTMLElement;
   private viewBox: HTMLElement;
+  private mapSelect: HTMLSelectElement;
+  private mapNote: HTMLParagraphElement;
+  private view: string;
+  private opened = new Map<string, HTMLDetailsElement>();
   private d: Drainage | null = null;
   private pal: Palette | null = null;
   private descToken = 0;
@@ -46,9 +52,13 @@ export class Panels {
     this.pathBox = el("section", "card path");
     this.basinBox = el("section", "card basins");
     this.viewBox = el("section", "card views");
+    this.view = base.meta.views.race;
+    this.mapSelect = this.mapChoices();
+    this.mapNote = el("p", "muted");
     root.append(
       el("header", "brand", el("h1", "", "nutmap"), el("p", "muted", "Every emoji races to the focus through small semantic steps.")),
       el("div", "searchbox", this.search, this.results),
+      el("section", "card mapcard", el("p", "eyebrow", "Map"), this.mapSelect, this.mapNote),
       this.focusCard,
       this.pathBox,
       this.basinBox,
@@ -64,6 +74,42 @@ export class Panels {
         this.runSearch();
       }
     });
+  }
+
+  private mapChoices(): HTMLSelectElement {
+    const select = el("select", "mapselect");
+    select.setAttribute("aria-label", "Map layout");
+    const option = (value: string, label: string) => {
+      const o = el("option", "", label);
+      o.value = value;
+      return o;
+    };
+    const views = this.base.meta.views;
+    const one = el("optgroup");
+    one.label = "One viewpoint alone";
+    for (const s of views.sweeps) if (s.id !== views.race) one.append(option(s.id, s.title));
+    select.append(option(views.race, "Race map"), option(BLENDED, "Blended descriptions"), one);
+    select.addEventListener("change", () => this.events.onView(select.value));
+    return select;
+  }
+
+  title(view: string): string {
+    if (view === BLENDED) return "Blended descriptions";
+    return this.base.meta.views.sweeps.find((s) => s.id === view)?.title ?? view;
+  }
+
+  setView(view: string): void {
+    this.view = view;
+    this.mapSelect.value = view;
+    if (view === this.base.meta.views.race) {
+      this.mapNote.textContent = "Emoji placed by the mixed similarity the races run on.";
+    } else if (view === BLENDED) {
+      this.mapNote.textContent = "Emoji placed by all 24 viewpoints' descriptions blended. Every viewpoint's map grows out of this one, and switching maps slides through it.";
+    } else {
+      this.mapNote.textContent = `Emoji placed by what the ${this.title(view)} viewpoint wrote alone. The rivers still follow the races, so they fade here.`;
+    }
+    const open = this.opened.get(view);
+    if (open) open.open = true;
   }
 
   sprite(i: number, size: number): HTMLSpanElement {
@@ -219,7 +265,9 @@ export class Panels {
     }
     if (token !== this.descToken) return;
     const titles = new Map(this.base.meta.angles.map((a) => [a.id, a.title]));
-    const items = views.map((v, k) => {
+    this.opened.clear();
+    const shown = views.some((v) => v.a === this.view) ? this.view : views[0]?.a;
+    const items = views.map((v) => {
       const links = el("ul", "links");
       for (const l of v.l) {
         const target = l.id === null ? undefined : this.base.index.get(l.id);
@@ -234,7 +282,8 @@ export class Panels {
         v.k.length ? el("p", "muted", v.k.join(", ")) : null,
         links,
       );
-      details.open = k === 0;
+      details.open = v.a === shown;
+      this.opened.set(v.a, details);
       return details;
     });
     this.viewBox.replaceChildren(el("p", "eyebrow", `${views.length} viewpoints`), ...items);

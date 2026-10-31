@@ -46,17 +46,24 @@ def drainage(entries, race):
     return root, parent, kids, flow, basin, heads
 
 
-def display_coords(coords):
-    xy = np.array(coords, dtype=np.float64)
+def pull_in_params(xy):
     center = np.median(xy, axis=0)
+    return center, np.percentile(np.linalg.norm(xy - center, axis=1), 98)
+
+
+def pull_in(xy, center, r0):
     d = xy - center
     r = np.linalg.norm(d, axis=1)
-    r0 = np.percentile(r, 98)
     s = 0.15 * r0
     far = r > r0
     scale = np.ones_like(r)
     scale[far] = (r0 + s * np.log1p((r[far] - r0) / s)) / r[far]
     return center + d * scale[:, None], int(far.sum())
+
+
+def display_coords(coords):
+    xy = np.array(coords, dtype=np.float64)
+    return pull_in(xy, *pull_in_params(xy))
 
 
 def unit(v):

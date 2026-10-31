@@ -31,6 +31,8 @@ DETERMINISTIC = [
     "web/public/nodes.json",
     "web/public/relations.json",
     "web/public/tree/1f330.bin",
+    "web/public/views/race.bin",
+    "web/public/views/literal.bin",
 ]
 
 

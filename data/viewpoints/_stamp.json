@@ -1,8 +1,8 @@
 {
- "digest": "14c9449c4b4104e3d2d2dbbd626c1eacd8414ee806728f0391aabd42145f6ce9",
+ "digest": "0f84e29f19e0789e51ab8906e77713d5ab00aee893ca9cb11cbcbbe07fea8515",
  "outputs": [
   "viewpoints/sweeps.json",
   "viewpoints/sweeps.bin"
  ],
- "seconds": 1.7
+ "seconds": 1946.2
 }

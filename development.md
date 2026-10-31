@@ -50,7 +50,7 @@ Git stores what can't be recomputed, plus the one result that's slow to recomput
 - every Claude answer, and the records of the batches that produced them;
 - the step notes;
 - the map and flowmap images;
-- the viewpoint maps, which take about 26 minutes of CPU to fit.
+- the viewpoint maps, which take about 32 minutes of CPU to fit.
 
 Everything else (emoji images, embeddings, similarity graph, races, site data and export) is ignored by git. One command rebuilds it:
 
@@ -58,7 +58,7 @@ Everything else (emoji images, embeddings, similarity graph, races, site data an
 uv run python -m nutmap run
 ```
 
-On the reference machine this takes about five minutes: about one minute to render images from the submodule and three to embed on the GPU. The embedding models download from Hugging Face on first use, at pinned revisions, a few GB in total. `viewpoints --force` refits the viewpoint maps: about 26 minutes, six viewpoints at a time at about 6½ minutes each.
+On the reference machine this takes about five minutes: about one minute to render images from the submodule and three to embed on the GPU. The embedding models download from Hugging Face on first use, at pinned revisions, a few GB in total. `viewpoints --force` refits the viewpoint maps: about 32 minutes, the race-map sweep first and then six viewpoints at a time, at about 6½ minutes per sweep.
 
 The result is byte-identical to the original. That was checked by rebuilding from a fresh copy of the tracked files with no API key set.
 
@@ -95,7 +95,7 @@ After the first `run`, force the stages downstream of the races, in this order:
 2. `layout --force` redraws the map.
 3. `flowmap --force` redraws the drainage map.
 4. `web --force` refreshes the site's data.
-5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 26 minutes.
+5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 32 minutes.
 6. `export --force` rewrites the combined export.
 
 NVIDIA GPUs would need PyTorch from a CUDA index instead of the ROCm one; that hasn't been tried.
@@ -117,8 +117,8 @@ Stages run in this order. Each depends only on stages listed above it.
 | explain | Writes a one-line note for every step used by any race. A viewpoint's own reason is reused when it exists; Claude is asked only for steps without one. | yes, batched |
 | layout | Lays the map out with UMAP. | |
 | flowmap | Draws the drainage map into the root. | |
-| web | Prepares the site's data: a compact race tree for every possible finish line, the reason strings, the viewpoint answers per emoji, and a sprite sheet. | |
-| viewpoints | Fits a sweep of layouts from the blended descriptions to each viewpoint alone, all starting from one shared layout of the blended descriptions that the optimiser never moves. Several viewpoints are fitted at once, and an interrupted run resumes viewpoint by viewpoint. The sweeps are stored in a compact form (see [Compressed storage](#compressed-storage)). | |
+| viewpoints | Fits a sweep of layouts from the race map's similarity to the blended descriptions, starting from the race map itself, which the optimiser never moves. The sweep's blended end becomes the shared map, and a sweep from it to each viewpoint alone follows, again with the shared map held still. Several viewpoints are fitted at once, and an interrupted run resumes sweep by sweep. The sweeps are stored in a compact form (see [Compressed storage](#compressed-storage)). | |
+| web | Prepares the site's data: a compact race tree for every possible finish line, the reason strings, the viewpoint answers per emoji, a sprite sheet, and every map sweep in the site's own coordinates, one small gzip file per sweep. | |
 | export | Writes one combined file with everything, for anyone consuming the dataset, including each emoji's place on every viewpoint's map. | |
 
 ### Interruptions and failures
@@ -187,7 +187,7 @@ Run these inside the site folder:
 
 The project uses only Bun, no Node. Cloudflare's Vite plugin and `cf`'s own build can't load their TypeScript configuration under Bun, so the build writes Cloudflare's prebuilt output format itself, with Cloudflare's own libraries, and `cf` only uploads it. The Worker's settings (name, compatibility date, asset handling) live in the site's worker config.
 
-Every view is a URL fragment, the finish line's emoji id optionally followed by a selected emoji's id, so links can be shared and back/forward works. Missing assets return a plain 404, because nothing is routed by path.
+Every view is a URL fragment: the finish line's emoji id, optionally followed by a selected emoji's id and the chosen map, so links can be shared and back/forward works. Switching maps fetches the two sweeps involved (about 270 KB each), decompresses them with the browser's own gzip support, and slides every emoji along them through the blended map. Missing assets return a plain 404, because nothing is routed by path.
 
 ## The videos
 

@@ -33,6 +33,7 @@ export class MapView {
   private pal: Palette | null = null;
   private curves: Curve[] = [];
   private byFlow: number[] = [];
+  private rivers = 1;
   private hover: number | null = null;
   private pinned: number | null = null;
   private scale = 1;
@@ -46,7 +47,7 @@ export class MapView {
   private queued = false;
   private pointers = new Map<number, { x: number; y: number }>();
   private drag: Drag | null = null;
-  private pinch: { dist: number } | null = null;
+  private pinch: { dist: number; mx: number; my: number } | null = null;
 
   constructor(canvas: HTMLCanvasElement, base: Base, events: MapEvents) {
     this.canvas = canvas;
@@ -61,11 +62,8 @@ export class MapView {
     base.nodes.forEach((node, i) => {
       this.xs[i] = node.x;
       this.ys[i] = node.y;
-      const key = this.cellKey(Math.floor(node.x / CELL), Math.floor(node.y / CELL));
-      const bucket = this.grid.get(key);
-      if (bucket) bucket.push(i);
-      else this.grid.set(key, [i]);
     });
+    this.index();
     new ResizeObserver(() => this.resize()).observe(canvas.parentElement ?? canvas);
     canvas.addEventListener("pointerdown", (e) => this.pointerDown(e));
     canvas.addEventListener("pointermove", (e) => this.pointerMove(e));
@@ -83,6 +81,25 @@ export class MapView {
     this.byFlow = Array.from(d.flow.keys()).sort((a, b) => d.flow[b] - d.flow[a] || a - b);
     this.ensureVisible(d.root);
     this.invalidate();
+  }
+
+  setPositions(xs: Float64Array, ys: Float64Array, rivers: number): void {
+    this.xs.set(xs);
+    this.ys.set(ys);
+    this.rivers = rivers;
+    this.index();
+    if (this.d) this.curves = riverCurves(this.d, this.xs, this.ys, this.base.meta.riverMinFlow);
+    this.invalidate();
+  }
+
+  private index(): void {
+    this.grid.clear();
+    for (let i = 0; i < this.xs.length; i++) {
+      const key = this.cellKey(Math.floor(this.xs[i] / CELL), Math.floor(this.ys[i] / CELL));
+      const bucket = this.grid.get(key);
+      if (bucket) bucket.push(i);
+      else this.grid.set(key, [i]);
+    }
   }
 
   setPinned(i: number | null): void {
@@ -198,15 +215,19 @@ export class MapView {
     return [e.clientX - rect.left, e.clientY - rect.top];
   }
 
+  private grip(): { dist: number; mx: number; my: number } {
+    const [a, b] = [...this.pointers.values()];
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  }
+
   private pointerDown(e: PointerEvent): void {
     this.canvas.setPointerCapture(e.pointerId);
     const [x, y] = this.local(e);
     this.pointers.set(e.pointerId, { x, y });
     if (this.pointers.size === 1) {
       this.drag = { x, y, tx: this.tx, ty: this.ty, moved: false };
-    } else if (this.pointers.size === 2) {
-      const [a, b] = [...this.pointers.values()];
-      this.pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) };
+    } else {
+      this.pinch = this.grip();
       if (this.drag) this.drag.moved = true;
     }
   }
@@ -218,11 +239,13 @@ export class MapView {
       return;
     }
     this.pointers.set(e.pointerId, { x, y });
-    if (this.pointers.size === 2 && this.pinch) {
-      const [a, b] = [...this.pointers.values()];
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      this.zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, dist / this.pinch.dist);
-      this.pinch.dist = dist;
+    if (this.pinch && this.pointers.size >= 2) {
+      const now = this.grip();
+      this.tx += now.mx - this.pinch.mx;
+      this.ty += now.my - this.pinch.my;
+      if (this.pinch.dist > 0 && now.dist > 0) this.zoomAt(now.mx, now.my, now.dist / this.pinch.dist);
+      else this.invalidate();
+      this.pinch = now;
       return;
     }
     if (this.drag) {
@@ -242,8 +265,16 @@ export class MapView {
     const [x, y] = this.local(e);
     const wasClick = !cancelled && this.pointers.size === 1 && this.drag !== null && !this.drag.moved;
     this.pointers.delete(e.pointerId);
-    if (this.pointers.size < 2) this.pinch = null;
-    if (this.pointers.size === 0) this.drag = null;
+    if (this.pointers.size >= 2) {
+      this.pinch = this.grip();
+    } else if (this.pointers.size === 1) {
+      this.pinch = null;
+      const [rest] = [...this.pointers.values()];
+      this.drag = { x: rest.x, y: rest.y, tx: this.tx, ty: this.ty, moved: true };
+    } else {
+      this.pinch = null;
+      this.drag = null;
+    }
     this.canvas.style.cursor = this.hover === null ? "grab" : "pointer";
     if (!wasClick) return;
     const i = this.hit(x, y);
@@ -298,7 +329,7 @@ export class MapView {
     ctx.lineJoin = "round";
     for (const c of this.curves) {
       ctx.strokeStyle = pal.color(c.u);
-      ctx.globalAlpha = pal.alpha(c.u) * dim;
+      ctx.globalAlpha = pal.alpha(c.u) * dim * this.rivers;
       ctx.lineWidth = pal.width(c.u);
       this.curve(c);
     }

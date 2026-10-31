@@ -1,5 +1,14 @@
 export const NONE = 0xffff;
 
+export interface Views {
+  layouts: number;
+  alphas: number[];
+  lo: [number, number];
+  hi: [number, number];
+  race: string;
+  sweeps: { id: string; title: string }[];
+}
+
 export interface Meta {
   n: number;
   root: string;
@@ -8,6 +17,7 @@ export interface Meta {
   palette: { slots: string[]; other: string };
   riverMinFlow: number;
   coloredBasins: number;
+  views: Views;
 }
 
 export interface EmojiNode {
@@ -106,6 +116,7 @@ class Lru<V> {
 
 const trees = new Lru<Promise<Tree>>(64);
 const descs = new Lru<Promise<Viewpoint[]>>(64);
+const sweeps = new Lru<Promise<Float32Array>>(8);
 
 export function loadTree(id: string, n: number): Promise<Tree> {
   const cached = trees.get(id);
@@ -133,5 +144,37 @@ export function loadDesc(id: string): Promise<Viewpoint[]> {
   const p = getJson<Viewpoint[]>(`desc/${id}.json`);
   descs.set(id, p);
   p.catch(() => descs.delete(id));
+  return p;
+}
+
+function decodeSweep(bytes: Uint8Array, meta: Meta): Float32Array {
+  const { layouts, lo, hi } = meta.views;
+  const stride = meta.n * 2;
+  const count = layouts * stride;
+  if (bytes.length !== 2 * count) throw new Error(`sweep: expected ${2 * count} bytes, got ${bytes.length}`);
+  const out = new Float32Array(count);
+  for (let p = 0; p < stride; p++) {
+    const axis = p & 1;
+    const step = (hi[axis] - lo[axis]) / 65535;
+    let level = 0;
+    for (let l = 0; l < layouts; l++) {
+      const k = l * stride + p;
+      level = (level + (bytes[k] | (bytes[count + k] << 8))) & 0xffff;
+      out[k] = lo[axis] + level * step;
+    }
+  }
+  return out;
+}
+
+export function loadSweep(id: string, meta: Meta): Promise<Float32Array> {
+  const cached = sweeps.get(id);
+  if (cached) return cached;
+  const p = fetch(`views/${id}.bin`).then(async (r) => {
+    if (!r.ok || !r.body) throw new Error(`views/${id}.bin: HTTP ${r.status}`);
+    const plain = r.body.pipeThrough(new DecompressionStream("gzip"));
+    return decodeSweep(new Uint8Array(await new Response(plain).arrayBuffer()), meta);
+  });
+  sweeps.set(id, p);
+  p.catch(() => sweeps.delete(id));
   return p;
 }

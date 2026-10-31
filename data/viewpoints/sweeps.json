@@ -87,17 +87,18 @@
   "places",
   "association"
  ],
+ "bridge": "race",
  "encoding": "uint16 levels between lo and hi, stored as differences from the previous layout, low bytes then high bytes, zstd",
  "hi": [
-  15.650591850280762,
-  12.517258644104004
+  16.61458396911621,
+  18.096511840820312
  ],
  "lo": [
-  -3.3732411861419678,
-  -8.442370414733887
+  -8.293213844299316,
+  -8.444007873535156
  ],
  "shape": [
-  24,
+  25,
   60,
   1734,
   2

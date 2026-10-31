@@ -1,3 +1,4 @@
+import gzip
 import io
 import json
 import logging
@@ -9,10 +10,11 @@ from PIL import Image
 
 from . import durable
 from .context import PipelineError, Stage, register
-from .flowmap import SLOTS, MUTED
+from .flowmap import MUTED, SLOTS, pull_in, pull_in_params
 from .inventory import load_entries, load_resolver
 from .progress import make_progress
 from .render import source_path
+from .viewpoints import RACE, load_sweeps
 
 log = logging.getLogger("nutmap")
 
@@ -46,27 +48,66 @@ def sprite_sheet(ctx, entries):
     return buf.getvalue(), cols, rows
 
 
-def normalised(flow_rows, ids):
-    xy = {r["id"]: (r["x"], r["y"]) for r in flow_rows}
-    pts = np.array([xy[i] for i in ids], dtype=np.float64)
+def square_frame(pts):
     lo, hi = pts.min(axis=0), pts.max(axis=0)
     span = (hi - lo).max()
-    pts = (pts - lo) / span + ((span - (hi - lo)) / span) / 2
-    pts[:, 1] = 1 - pts[:, 1]
-    return pts
+    return lo, span, ((span - (hi - lo)) / span) / 2
+
+
+def in_frame(pts, frame):
+    lo, span, pad = frame
+    out = (pts - lo) / span + pad
+    out[..., 1] = 1 - out[..., 1]
+    return out
+
+
+def flow_points(flow_rows, ids):
+    xy = {r["id"]: (r["x"], r["y"]) for r in flow_rows}
+    return np.array([xy[i] for i in ids], dtype=np.float64)
+
+
+def normalised(flow_rows, ids):
+    pts = flow_points(flow_rows, ids)
+    return in_frame(pts, square_frame(pts))
+
+
+def screen_sweeps(ctx, ids):
+    sweeps, alphas, names = load_sweeps(ctx.path("viewpoints"))
+    race_end = sweeps[names.index(RACE), -1].astype(np.float64)
+    coords = durable.read_json(ctx.path("map", "umap.json"))
+    target = np.array([coords[i] for i in ids], dtype=np.float64)
+    design = np.hstack([race_end, np.ones((len(race_end), 1))])
+    affine, *_ = np.linalg.lstsq(design, target, rcond=None)
+    flat = sweeps.reshape(-1, 2).astype(np.float64)
+    mapped = np.hstack([flat, np.ones((len(flat), 1))]) @ affine
+    center, r0 = pull_in_params(target)
+    pulled, _ = pull_in(mapped, center, r0)
+    flow = flow_points(durable.read_jsonl(ctx.path("flow", "flow.jsonl")), ids)
+    screen = in_frame(pulled, square_frame(flow)).reshape(sweeps.shape)
+    drift = np.abs(screen[names.index(RACE), -1] - in_frame(flow, square_frame(flow))).max()
+    if drift > 1e-3:
+        raise PipelineError(f"web: the race end of the bridge lands {drift:.2e} away from the site map")
+    return screen, alphas, names, drift
+
+
+def encode_view(layouts, lo, hi):
+    levels = np.round((layouts - lo) / (hi - lo) * 65535).astype("<u2")
+    steps = np.concatenate([levels[:1], levels[1:] - levels[:-1]], axis=0)
+    planes = np.ascontiguousarray(steps).view(np.uint8).reshape(-1, 2).T
+    return gzip.compress(planes.tobytes(), compresslevel=9, mtime=0)
 
 
 @register
 class Web(Stage):
     name = "web"
     dir = "web"
-    needs = ("inventory", "panel", "race", "explain", "flowmap", "render")
+    needs = ("inventory", "panel", "race", "explain", "flowmap", "render", "viewpoints")
 
     def config_slice(self, ctx):
-        return {"flowmap": ctx.cfg["flowmap"], "root": ctx.cfg["root"], "version": 2}
+        return {"flowmap": ctx.cfg["flowmap"], "root": ctx.cfg["root"], "version": 3}
 
     def outputs(self, ctx):
-        return [f"web/public/{f}" for f in ("meta.json", "nodes.json", "relations.json", "sprite.webp", "tree", "desc")]
+        return [f"web/public/{f}" for f in ("meta.json", "nodes.json", "relations.json", "sprite.webp", "tree", "desc", "views")]
 
     def run(self, ctx):
         out = ctx.path("web", "public")
@@ -104,6 +145,23 @@ class Web(Stage):
         durable.atomic_write_bytes(out / "sprite.webp", sheet)
 
         angles = [{"id": a["id"], "title": a["title"]} for a in ctx.angles()]
+        screen, alphas, names, drift = screen_sweeps(ctx, ids)
+        lo = screen.reshape(-1, 2).min(axis=0)
+        hi = screen.reshape(-1, 2).max(axis=0)
+        view_bytes = 0
+        for k, name in enumerate(names):
+            data = encode_view(screen[k], lo, hi)
+            durable.atomic_write_bytes(out / "views" / f"{name}.bin", data)
+            view_bytes += len(data)
+        log.info("web: %d map sweeps, %.1f MB, race end within %.1e of the site map", len(names), view_bytes / 1e6, drift)
+        views = {
+            "layouts": int(screen.shape[1]),
+            "alphas": [round(float(a), 6) for a in alphas],
+            "lo": [float(v) for v in lo],
+            "hi": [float(v) for v in hi],
+            "race": RACE,
+            "sweeps": [{"id": RACE, "title": "Race map"}] + [a for a in angles if a["id"] in names],
+        }
         write_json(
             out / "meta.json",
             {
@@ -114,6 +172,7 @@ class Web(Stage):
                 "palette": {"slots": SLOTS, "other": MUTED},
                 "riverMinFlow": fc["river_min_flow"],
                 "coloredBasins": fc["colored_basins"],
+                "views": views,
             },
         )
 
