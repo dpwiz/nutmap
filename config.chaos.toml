@@ -91,3 +91,7 @@ colored_basins = 3
 landmarks = 40
 river_min_flow = 3
 facets = 8
+
+[release]
+card = "dataset_card.md"
+repo = "dpwiz/nutmap"

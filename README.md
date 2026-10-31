@@ -52,7 +52,7 @@ The viewpoints really do see the emoji differently. Comparing each emoji's 15 ne
 
 1. **Inventory.** The emoji list comes from Unicode's emoji test data (Unicode 18.0), and the keywords from CLDR 49 English annotations.
 2. **Images.** Every emoji has a 3D and a flat image from Noto Emoji's release for Unicode 18.0. Flat flags Noto doesn't cover come from the public-domain region-flags set that ships with it.
-3. **The panel.** Claude Haiku 5.5 described every emoji once from each of 24 viewpoints. Every answer is a description, keywords, and three to eight linked emoji with the reason for each link.
+3. **The panel.** Claude Haiku 5.5 described every emoji once from each of 24 viewpoints. Every answer is a description, keywords, and up to eight linked emoji with the reason for each link.
    - A 40-emoji pilot (960 requests) was read and approved before the full run.
    - The full run went through Anthropic's Message Batches API at half price.
    - There were no refusals and no failed requests.
@@ -113,9 +113,13 @@ Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Fiv
 
 ## Sources and licences
 
+- The dataset (descriptions, links, step notes, graph, races and maps): [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- The code: Apache License 2.0, see [LICENSE](LICENSE).
 - Unicode emoji test data and CLDR annotations: © Unicode, Inc., under the [Unicode terms of use](https://www.unicode.org/terms_of_use.html).
 - Emoji images: [Noto Emoji](https://github.com/googlefonts/noto-emoji) by Google, Apache License 2.0. Flag images from region-flags are in the public domain.
 - Descriptions, links and step notes: generated with Claude Haiku 5.5 by Anthropic.
 - Embedding models: [Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) and [SigLIP 2 so400m](https://huggingface.co/google/siglip2-so400m-patch14-384).
+
+The pipeline also packages the dataset for Hugging Face: Parquet tables of the emoji, the viewpoints' descriptions, the similarity graph, every race with its step reasons, and every map, with a dataset card.
 
 Rebuilding, extending or modding the dataset is covered in [development.md](development.md).

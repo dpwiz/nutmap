@@ -52,7 +52,7 @@ Git stores what can't be recomputed, plus the one result that's slow to recomput
 - the map and flowmap images;
 - the viewpoint maps, which take about 40 minutes of CPU to fit.
 
-Everything else (emoji images, embeddings, similarity graph, races, site data and export) is ignored by git. One command rebuilds it:
+Everything else (emoji images, embeddings, similarity graph, races, site data, export and the Hugging Face release) is ignored by git. One command rebuilds it:
 
 ```bash
 uv run python -m nutmap run
@@ -97,6 +97,7 @@ After the first `run`, force the stages downstream of the races, in this order:
 4. `web --force` refreshes the site's data.
 5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 40 minutes.
 6. `export --force` rewrites the combined export.
+7. `release --force` rebuilds the Hugging Face release.
 
 NVIDIA GPUs would need PyTorch from a CUDA index instead of the ROCm one; that hasn't been tried.
 
@@ -120,6 +121,7 @@ Stages run in this order. Each depends only on stages listed above it.
 | viewpoints | Fits a sweep of layouts from the race map's similarity to the blended descriptions, starting from the race map itself, which the optimiser never moves. The sweep's blended end becomes the shared map, and sweeps from it follow, again with the shared map held still: one to each viewpoint alone, one to the pictures and one to the names and keywords. Several viewpoints are fitted at once, and an interrupted run resumes sweep by sweep. The sweeps are stored in a compact form (see [Compressed storage](#compressed-storage)). | |
 | web | Prepares the site's data: a compact race tree for every possible finish line, the reason strings, the viewpoint answers per emoji, a sprite sheet, and every map sweep in the site's own coordinates, one small gzip file per sweep. | |
 | export | Writes one combined file with everything, for anyone consuming the dataset, including each emoji's place on every viewpoint's map. | |
+| release | Builds the Hugging Face release: Parquet tables of the emoji, viewpoints, descriptions, steps, graph edges, every race and every map, plus the dataset card, filled in with the table sizes and model names. | |
 
 ### Interruptions and failures
 
@@ -188,6 +190,21 @@ Run these inside the site folder:
 The project uses only Bun, no Node. Cloudflare's Vite plugin and `cf`'s own build can't load their TypeScript configuration under Bun, so the build writes Cloudflare's prebuilt output format itself, with Cloudflare's own libraries, and `cf` only uploads it. The Worker's settings (name, compatibility date, asset handling) live in the site's worker config.
 
 Every view is a URL fragment: the finish line's emoji id (or `-` for no focus), optionally followed by a selected emoji's id and the chosen map, so links can be shared and back/forward works. Switching maps fetches the two sweeps involved (about 270 KB each), decompresses them with the browser's own gzip support, and slides every emoji along them through the blended map. Missing assets return a plain 404, because nothing is routed by path.
+
+## Publishing on Hugging Face
+
+The release stage writes a complete Hugging Face dataset repository into its own folder of the data directory: the dataset card and seven Parquet tables, about 34 MB. Each table is its own configuration, so the Hub's viewer and `load_dataset` show them separately. Nothing in it is uploaded by the pipeline.
+
+The card's text, including the dataset's licence, is a template at the top of the project, with placeholders for the table sizes and model names. The Hub repository id it mentions is in the `[release]` settings. The release is rebuilt whenever the template or those settings change.
+
+To publish, sign in once and upload the folder; the upload creates the dataset repository if it doesn't exist yet:
+
+```bash
+uv run hf auth login
+```
+```bash
+uv run hf upload dpwiz/nutmap data/release/hub --repo-type dataset
+```
 
 ## The videos
 

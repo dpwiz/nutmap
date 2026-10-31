@@ -10,7 +10,7 @@ from .llm import merge_tokens, usd
 from .pack import unpacked
 from .panel import angle_journal, pilot_journal
 
-ORDER = ["fetch", "inventory", "render", "pilot", "panel", "embed", "graph", "race", "explain", "layout", "flowmap", "viewpoints", "web", "export"]
+ORDER = ["fetch", "inventory", "render", "pilot", "panel", "embed", "graph", "race", "explain", "layout", "flowmap", "viewpoints", "web", "export", "release"]
 COLORS = {"done": "green", "stale": "yellow", "partial": "cyan", "pending": "dim"}
 
 

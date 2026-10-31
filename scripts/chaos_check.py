@@ -33,6 +33,10 @@ DETERMINISTIC = [
     "web/public/tree/1f330.bin",
     "web/public/views/race.bin",
     "web/public/views/literal.bin",
+    "release/hub/README.md",
+    "release/hub/data/descriptions.parquet",
+    "release/hub/data/races.parquet",
+    "release/hub/data/maps.parquet",
 ]
 
 

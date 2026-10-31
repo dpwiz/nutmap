@@ -7,7 +7,7 @@ import argparse
 import logging
 import sys
 
-from . import durable, embed, explain, export, flowmap, graph, inventory, layout, pack, panel, race, render, status, viewpoints, web
+from . import durable, embed, explain, export, flowmap, graph, inventory, layout, pack, panel, race, release, render, status, viewpoints, web
 from .context import STAGES, Ctx, PipelineError, WaitingForApproval
 
 log = logging.getLogger("nutmap")

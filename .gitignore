@@ -31,3 +31,4 @@ __pycache__/
 /site/dist/
 /site/.cloudflare/
 /data/morph/
+/data/release/
