@@ -203,11 +203,6 @@ export class Panels {
         this.sprite(d.root, 64),
         el("div", "", el("h2", "", node.n), el("p", "muted", `${node.g} · ${node.s}`)),
       ),
-      el(
-        "p",
-        "",
-        `The longest race takes ${d.maxHops} hops.`,
-      ),
     );
     this.renderBasins();
     this.renderViews(d.root);
@@ -228,15 +223,18 @@ export class Panels {
     const d = this.d;
     if (!d) return;
     const focus = this.base.nodes[d.root];
+    const eyebrow = el("p", "eyebrow", "Race path");
+    const longest = el("p", "", `The longest race takes ${d.maxHops} hops.`);
     if (i === null) {
       this.pathBox.replaceChildren(
-        el("p", "eyebrow", "Race path"),
+        eyebrow,
+        longest,
         el("p", "muted", `Hover an emoji to see its race to ${focus.c} ${focus.n}. Click to make it the focus, Shift+click (or tap) to pin its path.`),
       );
       return;
     }
     if (i === d.root) {
-      this.pathBox.replaceChildren(el("p", "eyebrow", "Race path"), el("p", "muted", "This is the focus."));
+      this.pathBox.replaceChildren(eyebrow, longest, el("p", "muted", "This is the focus."));
       return;
     }
     const steps = chain(d, i);
@@ -252,7 +250,6 @@ export class Panels {
         ),
       );
     }
-    const eyebrow = el("p", "eyebrow", "Race path");
     if (pinned) {
       const node = this.base.nodes[i];
       eyebrow.append(
@@ -262,7 +259,7 @@ export class Panels {
         action("swap", () => this.events.onSwap(i), `Race the other way: make ${node.c} ${node.n} the focus`),
       );
     }
-    this.pathBox.replaceChildren(eyebrow, list);
+    this.pathBox.replaceChildren(eyebrow, longest, list);
   }
 
   private renderBasins(): void {
