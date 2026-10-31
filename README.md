@@ -26,7 +26,7 @@ Think of it as Wikipedia racing for emoji. Each step moves to an emoji that is c
 - **A similarity graph** of 96,167 connections: nearest neighbours, every link a viewpoint proposed, and part-of links.
 - **Races.** For every pair of emoji, the cheapest route between them. Together these routes use 29,698 distinct steps, and every step has a one-line note explaining it.
 - **A map.** A 2D layout of all emoji by similarity. For any chosen finish line, the races into it form a drainage network: emoji flow along rivers, and every tributary belongs to a basin.
-- **A map per viewpoint.** 24 more layouts, each placing the emoji by one viewpoint's descriptions alone. All of them grow out of one shared map of the blended descriptions, which itself grows out of the race map, so an emoji can be followed from the race map to any viewpoint's map and back.
+- **A map per viewpoint.** 24 more layouts, each placing the emoji by one viewpoint's descriptions alone. All of them grow out of one shared map of the blended descriptions, which itself grows out of the race map, so an emoji can be followed from the race map to any viewpoint's map and back. Two more show the other parts of the race similarity on their own, the pictures and the names and keywords, next to the blended descriptions.
 
 ### The race to the chestnut
 
@@ -74,7 +74,7 @@ The viewpoints really do see the emoji differently. Comparing each emoji's 15 ne
    - "contains" for part-of steps (180);
    - otherwise a reason Claude Haiku wrote for that specific step (5,744).
 9. **Maps.** A UMAP layout of the mixed similarity places every emoji. The races into each finish line are drawn as rivers whose width grows with the number of emoji flowing through.
-10. **Viewpoint maps.** The race map stays exactly where it is. A sweep of 60 layouts moves from the race map's similarity to the blended descriptions, fitted together with aligned UMAP so neighbouring layouts stay consistent; its far end becomes the shared blended map. From there, 60 more layouts sweep to each viewpoint alone.
+10. **Viewpoint maps.** The race map stays exactly where it is. A sweep of 60 layouts moves from the race map's similarity to the blended descriptions, fitted together with aligned UMAP so neighbouring layouts stay consistent; its far end becomes the shared blended map. From there, 60 more layouts sweep to each viewpoint alone, and to the pictures and to the names and keywords, the other two parts of the race similarity.
     - Unlike standard aligned UMAP, the first layout of each sweep is fixed (the race map, or the shared blended map), and the optimiser never moves it. The layouts next to it are tied to it more strongly, fading out as the sweep moves away. Only the start is fixed: pinning both ends of a sweep forces a tear wherever the two arrangements disagree.
     - So every viewpoint sweep starts from exactly the same picture and leaves it gently: within the first five layouts emoji move a median 0.5–0.6% of the map's width, and the race-map sweep leaves the race map just as gently. Sweeps fitted separately and lined up afterwards start 5–12% apart.
     - The far ends are full maps of their viewpoint, keeping 37–56% of each emoji's nearest neighbours. The blended map keeps 51%.
@@ -88,14 +88,14 @@ Literal depiction · Colour and shape · Taxonomist · Chef · Naturalist · Fiv
 ## Visualisations
 
 - **[The interactive map](https://nutmap.ic-rbow.workers.dev).**
-  - Pan and zoom across all 1,734 emoji. Click any emoji to make it the finish line, and the map redraws as rivers draining into it.
+  - Pan and zoom across all 1,734 emoji, close enough to pull apart even the tightest clusters. Click any emoji to make it the finish line, and the map redraws as rivers draining into it; clear the focus to see just the emoji.
   - Hover over another emoji to see its race to the finish line, with the reason for every step. On a touch screen, tap once to see the race and again to make that emoji the finish line.
   - A side panel lists the basins, searches names and keywords, and shows what the 24 viewpoints said about the focused emoji. Their links lead on to other emoji.
-  - A map selector switches between the race map, the blended descriptions and any single viewpoint. Every emoji slides along the fitted sweeps, always through the blended map, and the rivers fade on maps they weren't worked out for.
+  - A map selector switches between the race map, each part of its similarity on its own (blended descriptions, pictures, names and keywords) and any single viewpoint. Every emoji slides along the fitted sweeps, always through the blended map, and the rivers fade on maps they weren't worked out for.
   - Every view, including the chosen map, has its own URL, so a race can be shared.
 - **The drainage map** above: the same view for the chestnut, as a still image.
 - **[The morph](https://www.youtube.com/watch?v=oN4GZm7bwsc).** A video loop of the map shifting from description similarity to image similarity and back.
-  - It uses one aligned UMAP layout for each of 240 text-to-image mixes, with the camera held steady.
+  - It plays the stored sweep from the shared blended map to the pictures alone, so the video ends on the same pictures map as the site.
   - You can watch neighbourhoods regroup as looks take over from meaning; the island of flags, for example, drifts from one side of the map to the other.
 
 [![The emoji map morphing between text and image similarity, on YouTube](https://img.youtube.com/vi/oN4GZm7bwsc/maxresdefault.jpg)](https://www.youtube.com/watch?v=oN4GZm7bwsc)

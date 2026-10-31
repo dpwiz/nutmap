@@ -43,3 +43,14 @@ def procrustes_chain(layouts):
         turns.append(np.degrees(np.arctan2(rotation[1, 0], rotation[0, 0])))
         chained.append(current @ rotation)
     return np.stack(chained), np.abs(turns)
+
+
+def steadied(sweep, sigma):
+    from scipy.ndimage import gaussian_filter1d
+
+    chained, _ = procrustes_chain(sweep.astype(np.float64))
+    if sigma <= 0:
+        return chained
+    smooth = gaussian_filter1d(chained, sigma=sigma, axis=0, mode="nearest")
+    smooth[0] = chained[0]
+    return smooth

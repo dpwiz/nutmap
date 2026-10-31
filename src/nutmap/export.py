@@ -19,7 +19,7 @@ class Export(Stage):
     needs = ("inventory", "embed", "graph", "race", "explain", "layout", "viewpoints")
 
     def config_slice(self, ctx):
-        return {"version": 2}
+        return {"version": 3}
 
     def outputs(self, ctx):
         return ["out/nutmap.json"]
@@ -62,7 +62,7 @@ class Export(Stage):
             "models": durable.read_json(ctx.path("emb", "models.json")),
             "panel_model": ctx.cfg["panel"]["model"],
             "graph": ctx.cfg["graph"],
-            "viewpoint_maps": {"anchor": "blended", "angles": list(views), "aligned_to": "blended", "layouts_per_sweep": ctx.cfg["viewpoints"]["layouts"]},
+            "viewpoint_maps": {"anchor": "blended", "maps": list(views), "aligned_to": "blended", "layouts_per_sweep": ctx.cfg["viewpoints"]["layouts"]},
             "counts": {"nodes": len(nodes), "edges": len(edges)},
         }
         durable.atomic_write_json(ctx.path("out", "nutmap.json"), {"meta": meta, "nodes": nodes, "edges": edges}, indent=None)

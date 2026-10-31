@@ -7,6 +7,7 @@ export interface PanelEvents {
   onFocus(i: number): void;
   onPin(i: number | null): void;
   onView(id: string): void;
+  onClear(): void;
 }
 
 type Child = Node | string | null | undefined | false;
@@ -22,6 +23,11 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, ...chil
 }
 
 const fmt = new Intl.NumberFormat("en");
+
+const PART_NOTES: Record<string, string> = {
+  pictures: "Emoji placed by how alike their pictures look, the 3D and flat renders together.",
+  names: "Emoji placed by their Unicode names and CLDR keywords alone.",
+};
 
 export class Panels {
   private base: Base;
@@ -56,13 +62,13 @@ export class Panels {
     this.mapSelect = this.mapChoices();
     this.mapNote = el("p", "muted");
     root.append(
-      el("header", "brand", el("h1", "", "nutmap"), el("p", "muted", "Every emoji races to the focus through small semantic steps.")),
+      el("header", "brand", el("h1", "", "nutmap")),
       el("div", "searchbox", this.search, this.results),
-      el("section", "card mapcard", el("p", "eyebrow", "Map"), this.mapSelect, this.mapNote),
       this.focusCard,
       this.pathBox,
       this.basinBox,
       this.viewBox,
+      el("section", "card mapcard", el("p", "eyebrow", "Map"), this.mapSelect, this.mapNote),
     );
     this.search.addEventListener("input", () => this.runSearch());
     this.search.addEventListener("keydown", (e) => {
@@ -85,10 +91,14 @@ export class Panels {
       return o;
     };
     const views = this.base.meta.views;
+    const parts = el("optgroup");
+    parts.label = "One part of the race similarity";
+    parts.append(option(BLENDED, "Blended descriptions"));
+    for (const s of views.sweeps) if (s.kind === "part") parts.append(option(s.id, s.title));
     const one = el("optgroup");
     one.label = "One viewpoint alone";
-    for (const s of views.sweeps) if (s.id !== views.race) one.append(option(s.id, s.title));
-    select.append(option(views.race, "Race map"), option(BLENDED, "Blended descriptions"), one);
+    for (const s of views.sweeps) if (s.kind === "viewpoint") one.append(option(s.id, s.title));
+    select.append(option(views.race, "Race map"), parts, one);
     select.addEventListener("change", () => this.events.onView(select.value));
     return select;
   }
@@ -104,9 +114,11 @@ export class Panels {
     if (view === this.base.meta.views.race) {
       this.mapNote.textContent = "Emoji placed by the mixed similarity the races run on.";
     } else if (view === BLENDED) {
-      this.mapNote.textContent = "Emoji placed by all 24 viewpoints' descriptions blended. Every viewpoint's map grows out of this one, and switching maps slides through it.";
+      this.mapNote.textContent = "Emoji placed by all 24 viewpoints' descriptions blended. Every map except the race map grows out of this one, and switching maps slides through it.";
+    } else if (PART_NOTES[view]) {
+      this.mapNote.textContent = PART_NOTES[view];
     } else {
-      this.mapNote.textContent = `Emoji placed by what the ${this.title(view)} viewpoint wrote alone. The rivers still follow the races, so they fade here.`;
+      this.mapNote.textContent = `Emoji placed by what the ${this.title(view)} viewpoint wrote alone.`;
     }
     const open = this.opened.get(view);
     if (open) open.open = true;
@@ -130,6 +142,12 @@ export class Panels {
     b.type = "button";
     b.title = `${this.base.nodes[i].c} ${this.base.nodes[i].n}`;
     b.addEventListener("click", onClick);
+    return b;
+  }
+
+  private stepEmoji(i: number): HTMLButtonElement {
+    const b = this.emojiButton(i, 28, true, () => this.events.onFocus(i));
+    b.classList.add("stacked");
     return b;
   }
 
@@ -168,8 +186,11 @@ export class Panels {
     this.d = d;
     this.pal = pal;
     const node = this.base.nodes[d.root];
+    const clear = el("button", "link", "clear");
+    clear.type = "button";
+    clear.addEventListener("click", () => this.events.onClear());
     this.focusCard.replaceChildren(
-      el("p", "eyebrow", "Focus"),
+      el("p", "eyebrow", "Focus · ", clear),
       el(
         "div",
         "focusrow",
@@ -179,11 +200,22 @@ export class Panels {
       el(
         "p",
         "",
-        `${fmt.format(d.parent.length - 1)} emoji race here through ${d.heads.length} basins; the longest race takes ${d.maxHops} hops.`,
+        `The longest race takes ${d.maxHops} hops.`,
       ),
     );
     this.renderBasins();
     this.renderViews(d.root);
+  }
+
+  clearFocus(): void {
+    this.d = null;
+    this.pal = null;
+    this.descToken++;
+    this.opened.clear();
+    this.focusCard.replaceChildren(el("p", "eyebrow", "Focus"), el("p", "muted", "None. Click any emoji to see every race into it."));
+    this.pathBox.replaceChildren();
+    this.basinBox.replaceChildren();
+    this.viewBox.replaceChildren();
   }
 
   setPath(i: number | null, pinned: boolean): void {
@@ -209,30 +241,18 @@ export class Panels {
         el(
           "li",
           "",
-          el(
-            "div",
-            "steprow",
-            this.emojiButton(s.from, 24, false, () => this.events.onFocus(s.from)),
-            el("span", "arrow", "→"),
-            this.emojiButton(s.to, 24, false, () => this.events.onFocus(s.to)),
-            el("span", "stepname", `${this.base.nodes[s.from].n} → ${this.base.nodes[s.to].n}`),
-          ),
           rel ? el("p", "relation", rel) : null,
+          el("div", "steppair", this.stepEmoji(s.from), el("span", "arrow", "→"), this.stepEmoji(s.to)),
         ),
       );
     }
-    const from = this.base.nodes[i];
     let unpin: HTMLButtonElement | null = null;
     if (pinned) {
       unpin = el("button", "link", "unpin");
       unpin.type = "button";
       unpin.addEventListener("click", () => this.events.onPin(null));
     }
-    this.pathBox.replaceChildren(
-      el("p", "eyebrow", pinned ? "Race path · pinned" : "Race path"),
-      el("h3", "", `${from.c} ${from.n} → ${focus.c} ${focus.n} · ${steps.length} ${steps.length === 1 ? "hop" : "hops"} `, unpin),
-      list,
-    );
+    this.pathBox.replaceChildren(el("p", "eyebrow", "Race path", unpin ? " · " : null, unpin), list);
   }
 
   private renderBasins(): void {
@@ -248,19 +268,19 @@ export class Panels {
     }
     this.basinBox.replaceChildren(
       el("p", "eyebrow", "Basins"),
-      el("p", "muted", "Each basin is the last step before the focus; counts are the emoji that drain through it."),
+      el("p", "muted", "Each basin is the last step before the focus."),
       list,
     );
   }
 
   private async renderViews(i: number): Promise<void> {
     const token = ++this.descToken;
-    this.viewBox.replaceChildren(el("p", "eyebrow", "24 viewpoints"), el("p", "muted", "Loading…"));
+    this.viewBox.replaceChildren(el("p", "eyebrow", "Viewpoints"), el("p", "muted", "Loading…"));
     let views: Viewpoint[];
     try {
       views = await loadDesc(this.base.nodes[i].id);
     } catch (err) {
-      if (token === this.descToken) this.viewBox.replaceChildren(el("p", "eyebrow", "24 viewpoints"), el("p", "error", String(err)));
+      if (token === this.descToken) this.viewBox.replaceChildren(el("p", "eyebrow", "Viewpoints"), el("p", "error", String(err)));
       return;
     }
     if (token !== this.descToken) return;
@@ -272,7 +292,7 @@ export class Panels {
       for (const l of v.l) {
         const target = l.id === null ? undefined : this.base.index.get(l.id);
         const head = target === undefined ? el("span", "rawemoji", l.e) : this.emojiButton(target, 20, false, () => this.events.onFocus(target));
-        links.append(el("li", "", head, el("span", "", `: ${l.r}`)));
+        links.append(el("li", "", head, el("span", "", l.r)));
       }
       const details = el(
         "details",
@@ -286,6 +306,6 @@ export class Panels {
       this.opened.set(v.a, details);
       return details;
     });
-    this.viewBox.replaceChildren(el("p", "eyebrow", `${views.length} viewpoints`), ...items);
+    this.viewBox.replaceChildren(el("p", "eyebrow", "Viewpoints"), ...items);
   }
 }

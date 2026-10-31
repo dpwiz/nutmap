@@ -12,6 +12,7 @@ const SURFACE = "#fcfcfb";
 const INK = "#0b0b0b";
 const CELL = 0.02;
 const LANDMARK_SPACING = 34;
+const MAX_ZOOM = 1200;
 
 interface Drag {
   x: number;
@@ -87,6 +88,15 @@ export class MapView {
     this.curves = this.riverUs.map((u) => stepCurve(d, this.xs, this.ys, u));
     this.byFlow = Array.from(d.flow.keys()).sort((a, b) => d.flow[b] - d.flow[a] || a - b);
     this.ensureVisible(d.root);
+    this.invalidate();
+  }
+
+  clearDrainage(): void {
+    this.d = null;
+    this.pal = null;
+    this.riverUs = [];
+    this.curves = [];
+    this.byFlow = [];
     this.invalidate();
   }
 
@@ -219,7 +229,7 @@ export class MapView {
   }
 
   private zoomAt(px: number, py: number, factor: number): void {
-    const next = Math.min(this.fitScale * 40, Math.max(this.fitScale * 0.5, this.scale * factor));
+    const next = Math.min(this.fitScale * MAX_ZOOM, Math.max(this.fitScale * 0.5, this.scale * factor));
     const k = next / this.scale;
     this.tx = px - (px - this.tx) * k;
     this.ty = py - (py - this.ty) * k;
@@ -302,9 +312,9 @@ export class MapView {
     if (i === null) {
       this.events.onPin(null);
     } else if (e.pointerType === "mouse") {
-      if (e.shiftKey) this.events.onPin(i);
+      if (e.shiftKey && this.d) this.events.onPin(i);
       else this.events.onFocus(i);
-    } else if (i === this.pinned) {
+    } else if (!this.d || i === this.pinned) {
       this.events.onFocus(i);
     } else {
       this.events.onPin(i);
@@ -342,7 +352,10 @@ export class MapView {
     ctx.fillRect(0, 0, this.w, this.h);
     const d = this.d;
     const pal = this.pal;
-    if (!d || !pal) return;
+    if (!d || !pal) {
+      this.drawPlain();
+      return;
+    }
     const active = this.hover ?? this.pinned;
     const path = active !== null && active !== d.root ? chain(d, active) : [];
     const dim = path.length ? 0.3 : 1;
@@ -413,13 +426,46 @@ export class MapView {
     ctx.fill();
     ctx.stroke();
     this.sprite(d.root, rx, ry, rootSize);
-    if (this.hover !== null && this.hover !== d.root) {
-      const [hx, hy] = this.toScreen(this.hover);
-      ctx.strokeStyle = INK;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(hx, hy, pathSize * 0.75, 0, Math.PI * 2);
-      ctx.stroke();
+    if (this.hover !== null && this.hover !== d.root) this.ring(this.hover, pathSize);
+  }
+
+  private ring(i: number, size: number): void {
+    const [sx, sy] = this.toScreen(i);
+    this.ctx.strokeStyle = INK;
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(sx, sy, size * 0.75, 0, Math.PI * 2);
+    this.ctx.stroke();
+  }
+
+  private drawPlain(): void {
+    const ctx = this.ctx;
+    const size = this.spriteSize();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = this.base.meta.palette.other;
+    for (let i = 0; i < this.xs.length; i++) {
+      const [sx, sy] = this.toScreen(i);
+      if (this.visible(sx, sy, 4)) ctx.fillRect(sx - 1.6, sy - 1.6, 3.2, 3.2);
     }
+    ctx.globalAlpha = 1;
+    const placed: [number, number][] = [];
+    for (let i = 0; i < this.xs.length; i++) {
+      const [sx, sy] = this.toScreen(i);
+      if (size >= 14) {
+        if (this.visible(sx, sy, size)) this.sprite(i, sx, sy, size);
+      } else if (this.visible(sx, sy, 26) && placed.every(([px, py]) => Math.hypot(px - sx, py - sy) >= LANDMARK_SPACING)) {
+        placed.push([sx, sy]);
+        this.sprite(i, sx, sy, 24);
+      }
+    }
+    if (this.hover === null) return;
+    const hoverSize = Math.max(size, 28) * 1.3;
+    const [hx, hy] = this.toScreen(this.hover);
+    ctx.fillStyle = SURFACE;
+    ctx.beginPath();
+    ctx.arc(hx, hy, hoverSize * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    this.sprite(this.hover, hx, hy, hoverSize);
+    this.ring(this.hover, hoverSize);
   }
 }

@@ -31,10 +31,12 @@ function shell(app: HTMLElement): Shell {
   return { canvas, panel, status, caption };
 }
 
+const NO_FOCUS = "-";
+
 function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   const race = base.meta.views.race;
   const views = new Set([race, BLENDED, ...base.meta.views.sweeps.map((s) => s.id)]);
-  let focusId: string | null = null;
+  let focusId: string | null | undefined;
   let pinnedId: string | null = null;
   let pinned: number | null = null;
   let hovered: number | null = null;
@@ -42,15 +44,17 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   let token = 0;
   let current: Drainage | null = null;
 
-  const parse = (): [string, string | null, string] => {
+  const parse = (): [string | null, string | null, string] => {
     const [f, s, v] = decodeURIComponent(location.hash.slice(1)).split("/");
-    return [base.index.has(f) ? f : base.meta.root, s && base.index.has(s) ? s : null, v && views.has(v) ? v : race];
+    const focus = f === NO_FOCUS ? null : base.index.has(f) ? f : base.meta.root;
+    return [focus, focus && s && base.index.has(s) ? s : null, v && views.has(v) ? v : race];
   };
 
-  const hash = (f: string, s: string | null, v: string | null) => {
+  const hash = (f: string | null, s: string | null, v: string | null) => {
+    const focus = f ?? NO_FOCUS;
     const map = v ?? race;
-    if (map !== race) return `#${f}/${s ?? ""}/${map}`;
-    return s ? `#${f}/${s}` : `#${f}`;
+    if (map !== race) return `#${focus}/${s ?? ""}/${map}`;
+    return s ? `#${focus}/${s}` : `#${focus}`;
   };
 
   const focusTo = (i: number) => {
@@ -64,7 +68,11 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   };
 
   const viewTo = (v: string) => {
-    location.hash = hash(focusId ?? base.meta.root, pinnedId, v);
+    location.hash = hash(focusId ?? null, pinnedId, v);
+  };
+
+  const clearTo = () => {
+    location.hash = hash(null, null, shown);
   };
 
   const view = new MapView(canvas, base, {
@@ -75,7 +83,7 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
       panels.setPath(hovered ?? pinned, hovered === null && pinned !== null);
     },
   });
-  const panels = new Panels(panel, base, { onFocus: focusTo, onPin: pinTo, onView: viewTo });
+  const panels = new Panels(panel, base, { onFocus: focusTo, onPin: pinTo, onView: viewTo, onClear: clearTo });
   const motion = new ViewMotion(base, (xs, ys, rivers) => view.setPositions(xs, ys, rivers));
 
   let mapFailed = false;
@@ -103,7 +111,7 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
       if (shown === v) {
         shown = before;
         label(before);
-        history.replaceState(null, "", hash(focusId ?? base.meta.root, pinnedId, before));
+        history.replaceState(null, "", hash(focusId ?? null, pinnedId, before));
       }
     }
   }
@@ -111,7 +119,15 @@ function start(base: Base, { canvas, panel, status, caption }: Shell): void {
   async function apply(): Promise<void> {
     const [f, s, v] = parse();
     if (v !== shown) void moveTo(v);
-    if (f !== focusId) {
+    if (f === null && focusId !== null) {
+      focusId = null;
+      token++;
+      current = null;
+      status.textContent = "";
+      view.clearDrainage();
+      panels.clearFocus();
+      document.title = "nutmap";
+    } else if (f !== null && f !== focusId) {
       focusId = f;
       const t = ++token;
       status.textContent = "Loading race tree…";

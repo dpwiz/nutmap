@@ -15,6 +15,7 @@ log = logging.getLogger("nutmap")
 NEGATIVE_SAMPLE_RATE = 5.0
 RACE = "race"
 BRIDGE_VERSION = 3
+CHANNELS = {"pictures": "Pictures", "names": "Names and keywords"}
 
 
 def unit(x):
@@ -29,6 +30,13 @@ def viewpoint_vectors(ctx):
     for i in range(len(views)):
         views[i][~mask[i]] = blend[~mask[i]]
     return blend, views
+
+
+def channel_vectors(ctx):
+    images = unit(np.load(ctx.path("emb", "image.npy")))
+    mask = np.load(ctx.path("emb", "image_mask.npy"))
+    pictures = unit((images * mask[..., None]).sum(0) / np.maximum(mask.sum(0), 1)[:, None])
+    return {"pictures": pictures, "names": unit(np.load(ctx.path("emb", "cldr.npy")))}
 
 
 def mix(blend, view, alpha):
@@ -157,7 +165,7 @@ def decode_sweeps(payload, shape, lo, hi):
 def load_sweeps(folder):
     meta = durable.read_json(folder / "sweeps.json")
     sweeps = decode_sweeps(durable.read_bytes(folder / "sweeps.bin"), meta["shape"], np.array(meta["lo"]), np.array(meta["hi"]))
-    return sweeps, np.array(meta["alphas"]), meta["angles"] + [meta["bridge"]]
+    return sweeps, np.array(meta["alphas"]), meta["angles"] + meta["channels"] + [meta["bridge"]]
 
 
 def viewpoint_maps(ctx):
@@ -178,7 +186,7 @@ class Viewpoints(Stage):
         return vc
 
     def config_slice(self, ctx):
-        return {"viewpoints": self.fit_settings(ctx), "layout": self.layout_settings(ctx), "bridge": BRIDGE_VERSION, "version": 4}
+        return {"viewpoints": self.fit_settings(ctx), "layout": self.layout_settings(ctx), "bridge": BRIDGE_VERSION, "channels": list(CHANNELS), "version": 5}
 
     def layout_settings(self, ctx):
         return {k: ctx.cfg["layout"][k] for k in ("n_neighbors", "min_dist", "random_state")}
@@ -189,7 +197,7 @@ class Viewpoints(Stage):
     def describe(self, ctx):
         meta = durable.read_json(ctx.path("viewpoints", "sweeps.json"))
         if meta:
-            return f"the race-map bridge and {len(meta['angles'])} viewpoint sweeps, {meta['shape'][1]} layouts each"
+            return f"the race-map bridge, {len(meta['channels'])} component and {len(meta['angles'])} viewpoint sweeps, {meta['shape'][1]} layouts each"
         d = ctx.path("viewpoints", "chunks")
         n = sum(1 for _ in d.glob("*.npy")) if d.exists() else 0
         return f"{n} sweeps fitted so far"
@@ -206,16 +214,17 @@ class Viewpoints(Stage):
         cache.mkdir(parents=True, exist_ok=True)
         bridge_file = cache / f"{RACE}_{durable.digest([vc, lc, BRIDGE_VERSION, durable.sha256_bytes(blend.tobytes()), durable.sha256_bytes(similarity.tobytes())])[:16]}.npy"
         with make_progress(ctx.console) as prog:
-            task = prog.add_task("viewpoints", total=len(angles) + 1, completed=0, note="")
+            task = prog.add_task("viewpoints", total=len(angles) + len(CHANNELS) + 1, completed=0, note="")
             self.fit(ctx, prog, task, [(RACE, blend, similarity, None, vc, lc)], {RACE: bridge_file})
             anchor = np.load(bridge_file)[-1]
-            files = {a: cache / f"{a}_{durable.digest([vc, bridge_file.name, durable.sha256_bytes(views[i].tobytes())])[:16]}.npy" for i, a in enumerate(angles)}
-            self.fit(ctx, prog, task, [(a, blend, views[i], anchor, vc, lc) for i, a in enumerate(angles)], files)
+            targets = dict(zip(angles, views)) | channel_vectors(ctx)
+            files = {name: cache / f"{name}_{durable.digest([vc, bridge_file.name, durable.sha256_bytes(v.tobytes())])[:16]}.npy" for name, v in targets.items()}
+            self.fit(ctx, prog, task, [(name, blend, v, anchor, vc, lc) for name, v in targets.items()], files)
         expected = set(files.values()) | {bridge_file}
         for stale in cache.glob("*.npy"):
             if stale not in expected:
                 stale.unlink()
-        sweeps = np.stack([np.load(files[a]) for a in angles] + [np.load(bridge_file)[::-1]])
+        sweeps = np.stack([np.load(files[name]) for name in targets] + [np.load(bridge_file)[::-1]])
         lo, hi, payload = encode_sweeps(sweeps)
         durable.atomic_write_packed(ctx.path("viewpoints", "sweeps.bin"), payload)
         meta = {
@@ -224,11 +233,12 @@ class Viewpoints(Stage):
             "lo": lo.tolist(),
             "hi": hi.tolist(),
             "angles": angles,
+            "channels": list(CHANNELS),
             "bridge": RACE,
             "alphas": eased_alphas(vc["layouts"], vc["easing"]).tolist(),
         }
         durable.atomic_write_json(ctx.path("viewpoints", "sweeps.json"), meta)
-        log.info("viewpoints: the race-map bridge and %d viewpoint sweeps from its blended end, %d layouts each", len(angles), vc["layouts"])
+        log.info("viewpoints: the race-map bridge, then %d component and %d viewpoint sweeps from its blended end, %d layouts each", len(CHANNELS), len(angles), vc["layouts"])
 
     def fit(self, ctx, prog, task, jobs, files):
         todo = [job for job in jobs if not files[job[0]].exists()]

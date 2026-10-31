@@ -88,6 +88,10 @@
   "association"
  ],
  "bridge": "race",
+ "channels": [
+  "pictures",
+  "names"
+ ],
  "encoding": "uint16 levels between lo and hi, stored as differences from the previous layout, low bytes then high bytes, zstd",
  "hi": [
   16.61458396911621,
@@ -98,7 +102,7 @@
   -8.444007873535156
  ],
  "shape": [
-  25,
+  27,
   60,
   1734,
   2

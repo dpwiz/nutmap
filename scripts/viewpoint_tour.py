@@ -6,25 +6,15 @@ from pathlib import Path
 import numpy as np
 from PIL import ImageDraw, ImageFont
 from scipy.interpolate import CubicSpline
-from scipy.ndimage import gaussian_filter1d
 
 from nutmap import durable
-from nutmap.motion import eased_alphas, procrustes_chain
+from nutmap.motion import eased_alphas, steadied
 from nutmap.video import FONT, INK, MAP_BOX, MUTED, PLAIN_MAP_BOX, SMALL, Sprites, encode, fit_to_screen
-from nutmap.viewpoints import RACE, load_sweeps
+from nutmap.viewpoints import CHANNELS, RACE, load_sweeps
 
 REPO = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("NUTMAP_DATA") or REPO / "data")
 BLENDED = "Blended text"
-
-
-def steadied(sweep, sigma):
-    chained, _ = procrustes_chain(sweep.astype(np.float64))
-    if sigma <= 0:
-        return chained
-    smooth = gaussian_filter1d(chained, sigma=sigma, axis=0, mode="nearest")
-    smooth[0] = chained[0]
-    return smooth
 
 
 class Tour:
@@ -33,8 +23,8 @@ class Tour:
         if not durable.exists(folder / "sweeps.bin"):
             raise SystemExit("data/viewpoints is missing: run `uv run python -m nutmap run` first")
         sweeps, alphas, angles = load_sweeps(folder)
-        titles = {a["id"]: a["title"] for a in tomllib.loads((REPO / "angles.toml").read_text("utf-8"))["angle"]} | {RACE: "Race map"}
-        chosen = only or [a for a in angles if a != RACE]
+        titles = {a["id"]: a["title"] for a in tomllib.loads((REPO / "angles.toml").read_text("utf-8"))["angle"]} | CHANNELS | {RACE: "Race map"}
+        chosen = only or [a for a in angles if a != RACE and a not in CHANNELS]
         unknown = sorted(set(chosen) - set(angles))
         if unknown:
             raise SystemExit(f"unknown viewpoints: {', '.join(unknown)}")

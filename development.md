@@ -50,7 +50,7 @@ Git stores what can't be recomputed, plus the one result that's slow to recomput
 - every Claude answer, and the records of the batches that produced them;
 - the step notes;
 - the map and flowmap images;
-- the viewpoint maps, which take about 32 minutes of CPU to fit.
+- the viewpoint maps, which take about 40 minutes of CPU to fit.
 
 Everything else (emoji images, embeddings, similarity graph, races, site data and export) is ignored by git. One command rebuilds it:
 
@@ -58,7 +58,7 @@ Everything else (emoji images, embeddings, similarity graph, races, site data an
 uv run python -m nutmap run
 ```
 
-On the reference machine this takes about five minutes: about one minute to render images from the submodule and three to embed on the GPU. The embedding models download from Hugging Face on first use, at pinned revisions, a few GB in total. `viewpoints --force` refits the viewpoint maps: about 32 minutes, the race-map sweep first and then six viewpoints at a time, at about 6½ minutes per sweep.
+On the reference machine this takes about five minutes: about one minute to render images from the submodule and three to embed on the GPU. The embedding models download from Hugging Face on first use, at pinned revisions, a few GB in total. `viewpoints --force` refits the viewpoint maps: about 40 minutes, the race-map sweep first and then six sweeps at a time, at about 6½ minutes each.
 
 The result is byte-identical to the original. That was checked by rebuilding from a fresh copy of the tracked files with no API key set.
 
@@ -95,7 +95,7 @@ After the first `run`, force the stages downstream of the races, in this order:
 2. `layout --force` redraws the map.
 3. `flowmap --force` redraws the drainage map.
 4. `web --force` refreshes the site's data.
-5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 32 minutes.
+5. `viewpoints --force` refits the viewpoint maps from the new embeddings, which takes about 40 minutes.
 6. `export --force` rewrites the combined export.
 
 NVIDIA GPUs would need PyTorch from a CUDA index instead of the ROCm one; that hasn't been tried.
@@ -117,7 +117,7 @@ Stages run in this order. Each depends only on stages listed above it.
 | explain | Writes a one-line note for every step used by any race. A viewpoint's own reason is reused when it exists; Claude is asked only for steps without one. | yes, batched |
 | layout | Lays the map out with UMAP. | |
 | flowmap | Draws the drainage map into the root. | |
-| viewpoints | Fits a sweep of layouts from the race map's similarity to the blended descriptions, starting from the race map itself, which the optimiser never moves. The sweep's blended end becomes the shared map, and a sweep from it to each viewpoint alone follows, again with the shared map held still. Several viewpoints are fitted at once, and an interrupted run resumes sweep by sweep. The sweeps are stored in a compact form (see [Compressed storage](#compressed-storage)). | |
+| viewpoints | Fits a sweep of layouts from the race map's similarity to the blended descriptions, starting from the race map itself, which the optimiser never moves. The sweep's blended end becomes the shared map, and sweeps from it follow, again with the shared map held still: one to each viewpoint alone, one to the pictures and one to the names and keywords. Several viewpoints are fitted at once, and an interrupted run resumes sweep by sweep. The sweeps are stored in a compact form (see [Compressed storage](#compressed-storage)). | |
 | web | Prepares the site's data: a compact race tree for every possible finish line, the reason strings, the viewpoint answers per emoji, a sprite sheet, and every map sweep in the site's own coordinates, one small gzip file per sweep. | |
 | export | Writes one combined file with everything, for anyone consuming the dataset, including each emoji's place on every viewpoint's map. | |
 
@@ -187,7 +187,7 @@ Run these inside the site folder:
 
 The project uses only Bun, no Node. Cloudflare's Vite plugin and `cf`'s own build can't load their TypeScript configuration under Bun, so the build writes Cloudflare's prebuilt output format itself, with Cloudflare's own libraries, and `cf` only uploads it. The Worker's settings (name, compatibility date, asset handling) live in the site's worker config.
 
-Every view is a URL fragment: the finish line's emoji id, optionally followed by a selected emoji's id and the chosen map, so links can be shared and back/forward works. Switching maps fetches the two sweeps involved (about 270 KB each), decompresses them with the browser's own gzip support, and slides every emoji along them through the blended map. Missing assets return a plain 404, because nothing is routed by path.
+Every view is a URL fragment: the finish line's emoji id (or `-` for no focus), optionally followed by a selected emoji's id and the chosen map, so links can be shared and back/forward works. Switching maps fetches the two sweeps involved (about 270 KB each), decompresses them with the browser's own gzip support, and slides every emoji along them through the blended map. Missing assets return a plain 404, because nothing is routed by path.
 
 ## The videos
 
@@ -195,19 +195,13 @@ Two scripts in the scripts folder render 1080p H.264 videos, run with `uv run py
 
 ### The morph
 
-The morph script renders the text-to-image loop.
-
-How it's made:
-1. **Fit.** One aligned UMAP layout for each of 240 mixes between description similarity and image similarity, spaced by a sigmoid easing. This takes about 42 minutes, single-threaded because of the fixed seed, and runs only when the layouts are missing or their settings change.
-2. **Stabilise.** Each layout is matched to the previous one by rotation, shift and uniform scale only, so the camera doesn't spin. Each emoji's path is then lightly smoothed.
-3. **Render.** 1080p H.264, the sweep played forward and back so it loops seamlessly. Takes seconds.
+The morph script renders the text-to-image loop from the pipeline's stored sweep between the shared blended map and the pictures, so it needs no fitting of its own. Each stored layout is matched to the previous one by rotation, shift and uniform scale only, so the camera doesn't spin; each emoji's path is lightly smoothed; and the sweep plays forward and back so it loops seamlessly. Rendering takes seconds.
 
 Options:
-- **`--seconds`, `--fps` and `--easing`** retime the loop by following smooth curves through the stored layouts. No refit is needed.
+- **`--seconds`, `--fps` and `--easing`** retime the loop by following smooth curves through the stored layouts.
 - **`--subpixel`** sets how finely sprites are placed. Slow motion glides instead of stepping a whole pixel at a time; at a quarter pixel a 64-second loop is as smooth as a 16-second one at whole pixels.
 - **`--plain`** also drops the slider and the highlighted emoji.
-- **`--sigma`** changes the smoothing.
-- **`--layouts`, `--layout-easing` and `--seed`** change the fit itself and trigger a refit, as does `--refit`.
+- **`--sigma`** changes the smoothing; the shared map itself is never moved.
 
 ### The viewpoint tour
 
@@ -215,7 +209,7 @@ The tour script plays the pipeline's viewpoint maps: from the shared blended-tex
 
 - **`--hold`** is how long each map stays perfectly still, 1 second by default. Holding the exact key layout avoids the small shuffle that interpolated frames near a key frame would show.
 - **`--move`** and **`--steepness`** set how long each sweep takes and how gently it leaves and arrives: 3 seconds on a logistic curve of steepness 12 by default.
-- **`--only`** visits just the listed viewpoint ids, in the given order.
+- **`--only`** visits just the listed ids, in the given order; besides viewpoint ids it takes `pictures`, `names` and `race`.
 - **`--sigma`** lightly smooths each emoji's path; the shared map itself is never moved.
 
 ## Keeping the repository small

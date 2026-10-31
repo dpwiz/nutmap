@@ -6,7 +6,7 @@ export interface Views {
   lo: [number, number];
   hi: [number, number];
   race: string;
-  sweeps: { id: string; title: string }[];
+  sweeps: { id: string; title: string; kind: "race" | "part" | "viewpoint" }[];
 }
 
 export interface Meta {

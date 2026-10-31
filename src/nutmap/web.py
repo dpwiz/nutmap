@@ -14,7 +14,7 @@ from .flowmap import MUTED, SLOTS, pull_in, pull_in_params
 from .inventory import load_entries, load_resolver
 from .progress import make_progress
 from .render import source_path
-from .viewpoints import RACE, delta_planes, load_sweeps, quantised
+from .viewpoints import CHANNELS, RACE, delta_planes, load_sweeps, quantised
 
 log = logging.getLogger("nutmap")
 
@@ -101,7 +101,7 @@ class Web(Stage):
     needs = ("inventory", "panel", "race", "explain", "flowmap", "render", "viewpoints")
 
     def config_slice(self, ctx):
-        return {"flowmap": ctx.cfg["flowmap"], "root": ctx.cfg["root"], "version": 3}
+        return {"flowmap": ctx.cfg["flowmap"], "root": ctx.cfg["root"], "version": 4}
 
     def outputs(self, ctx):
         return [f"web/public/{f}" for f in ("meta.json", "nodes.json", "relations.json", "sprite.webp", "tree", "desc", "views")]
@@ -157,7 +157,9 @@ class Web(Stage):
             "lo": [float(v) for v in lo],
             "hi": [float(v) for v in hi],
             "race": RACE,
-            "sweeps": [{"id": RACE, "title": "Race map"}] + [a for a in angles if a["id"] in names],
+            "sweeps": [{"id": RACE, "title": "Race map", "kind": "race"}]
+            + [{"id": c, "title": t, "kind": "part"} for c, t in CHANNELS.items() if c in names]
+            + [a | {"kind": "viewpoint"} for a in angles if a["id"] in names],
         }
         write_json(
             out / "meta.json",
