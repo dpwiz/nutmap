@@ -34,7 +34,7 @@ The answer had to be JSON with exactly those three fields.
 
 ![All 1,734 emoji placed by their pooled descriptions](viewpoints/blended.webp)
 
-The blended map places every emoji by all 24 of its descriptions pooled together. Each viewpoint's map grew out of it through a sweep of aligned UMAP layouts, so an emoji tends to sit in a similar place on every map. 🌰 and 🐉 are circled on all of them.
+The blended map places every emoji by all 24 of its descriptions pooled together. Each viewpoint's map grew out of it through a sweep of aligned UMAP layouts, so an emoji tends to sit in a similar place on every map. 🌰 and 🐉 are circled on all of them. So that the rest of each map fills its picture, a few far-off emoji are drawn nearer the edges than they really are.
 
 No flat map keeps every neighbourhood: the blended map keeps 51% of each emoji's 15 nearest neighbours.
 

@@ -149,7 +149,7 @@ class Page:
             "",
             self.image(BLENDED, f"All {len(self.entries):,} emoji placed by their pooled descriptions"),
             "",
-            f"The blended map places every emoji by all {len(self.angles)} of its descriptions pooled together. Each viewpoint's map grew out of it through a sweep of aligned UMAP layouts, so an emoji tends to sit in a similar place on every map. {' and '.join(e['char'] for e in self.examples)} are circled on all of them.",
+            f"The blended map places every emoji by all {len(self.angles)} of its descriptions pooled together. Each viewpoint's map grew out of it through a sweep of aligned UMAP layouts, so an emoji tends to sit in a similar place on every map. {' and '.join(e['char'] for e in self.examples)} are circled on all of them. So that the rest of each map fills its picture, a few far-off emoji are drawn nearer the edges than they really are.",
             "",
             f"No flat map keeps every neighbourhood: the blended map keeps {self.blended_kept:.0%} of each emoji's {NEIGHBOURS} nearest neighbours.",
             "",
